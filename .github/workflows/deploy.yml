@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ] # O la rama que uses
+    branches: [ main ]
 
 jobs:
   build-and-deploy:
@@ -24,5 +24,5 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: . # Sube la carpeta actual
-          branch: gh-pages # Se publicará en esta rama
+          folder: .
+          branch: gh-pages
