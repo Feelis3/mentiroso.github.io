@@ -150,6 +150,10 @@
 
       window.onload = () => {
         const sR = localStorage.getItem("mentiroso_room"), sN = localStorage.getItem("mentiroso_name");
+        //Poner solo el código de la sala en el input para unirse
+          const urlParams = new URLSearchParams(window.location.search);
+          const joinCode = urlParams.get('join');
+          if (joinCode) document.getElementById("roomInput").value = joinCode.toUpperCase();
         if (sR && sN) {
             db.ref("rooms/" + sR).once("value", s => {
                 if (s.exists()) { myName = sN; currentRoom = sR; listenToRoom(sR); db.ref(`rooms/${sR}/players/${sN}`).set(true); }
