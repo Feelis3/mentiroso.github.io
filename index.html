@@ -14,26 +14,39 @@
         section { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: sticky; top: 0; background: #050505; padding: 1.5rem; }
         .hero-title { font-family: "Archivo Black", sans-serif; font-size: clamp(2rem, 8vw, 5rem); line-height: 0.85; text-align: center; text-transform: uppercase; background: linear-gradient(to bottom, #fff, #444); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .custom-input { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.8rem; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; font-weight: 700; color: white; margin-bottom: 0.5rem; outline: none; }
-        .btn-action { background: #fff; color: #000; font-weight: 900; padding: 1rem; text-transform: uppercase; letter-spacing: 1px; width: 100%; max-width: 320px; border-radius: 12px; transition: 0.3s; border: none; cursor: pointer; }
+        .btn-action { background: #fff; color: #000; font-weight: 900; padding: 1rem; text-transform: uppercase; width: 100%; max-width: 320px; border-radius: 12px; transition: 0.3s; border: none; cursor: pointer; }
         .player-card { position: relative; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.6rem; border-radius: 16px; display: flex; align-items: center; gap: 8px; }
         .avatar { width: 35px; height: 35px; border-radius: 50%; background: #1a1a1a; border: 2px solid var(--pink); }
         .blur-content { filter: blur(25px); opacity: 0; transition: 0.3s; pointer-events: none; }
         .show-content { filter: blur(0); opacity: 1; }
         .hidden { display: none !important; }
         input[type="range"] { width: 100%; accent-color: var(--pink); cursor: pointer; }
-        .whatsapp-btn { background: #25d366; color: white; font-weight: 800; font-size: 10px; padding: 8px 16px; border-radius: 99px; text-transform: uppercase; margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-back { position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .btn-back { position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
         .kick-badge { position: absolute; top: -5px; right: -5px; background: #ff4444; color: white; font-size: 10px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 10; }
+
+        .info-puntos { position: relative; display: inline-block; cursor: help; margin-left: 5px; }
+        .info-puntos .tooltip { visibility: hidden; width: 200px; background: #111; color: #fff; text-align: center; border-radius: 12px; padding: 12px; position: absolute; z-index: 100; bottom: 125%; left: 50%; transform: translateX(-50%); opacity: 0; transition: 0.3s; border: 1px solid var(--pink); font-size: 11px; text-transform: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .info-puntos:hover .tooltip { visibility: visible; opacity: 1; }
+
+        #ejection-screen { position: fixed; inset: 0; background: #000; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.5s opacity; overflow: hidden; }
+        #ejection-screen.active { opacity: 1; pointer-events: auto; }
+        .ejection-text { font-family: "Archivo Black", sans-serif; font-size: 1.5rem; text-align: center; color: #fff; max-width: 85%; margin-top: 3rem; text-transform: uppercase; }
+        .floating-avatar { width: 100px; height: 100px; animation: floatX 4.5s infinite linear; position: absolute; left: -150px; }
+        @keyframes floatX { 0% { transform: translateX(-150vw) rotate(0deg); } 100% { transform: translateX(250vw) rotate(1000deg); } }
     </style>
 </head>
 <body>
     <button id="btn-logout" onclick="logout()" class="btn-back hidden">← Salir</button>
 
+    <div id="ejection-screen">
+        <div id="ejection-avatars-flow" class="w-full h-32 relative flex items-center"></div>
+        <p id="ejection-msg" class="ejection-text"></p>
+    </div>
+
     <div class="stack-container">
       <section id="screen-lobby">
         <h1 class="hero-title">MENTI<br />ROSO</h1>
         <div class="text-6xl my-4 animate-bounce">🦐</div>
-        <p class="text-[10px] uppercase tracking-[0.4em] text-zinc-500 mb-6 font-black text-center">By Marcos Pérez Esteban</p>
         <input type="text" id="username" class="custom-input" placeholder="TU NOMBRE..." />
         <div id="lobby-main" class="flex flex-col gap-3 w-full items-center">
           <button onclick="showCreateOptions()" class="btn-action !bg-pink-600 !text-white">CREAR SALA</button>
@@ -46,7 +59,7 @@
           <button onclick="finalizeCreation('admin')" class="btn-action !py-3 text-xs">Modo Admin</button>
           <button onclick="finalizeCreation('normal')" class="btn-action !py-3 text-xs">Modo Normal</button>
           <button onclick="finalizeCreation('ideas')" class="btn-action !py-3 text-xs">Modo Ideas</button>
-          <button onclick="showCreateOptions(false)" class="text-[10px] uppercase font-bold text-zinc-600 mt-2">Cancelar</button>
+          <button onclick="showCreateOptions(false)" class="text-[10px] uppercase font-bold opacity-50 mt-2">Cancelar</button>
         </div>
       </section>
 
@@ -54,71 +67,57 @@
         <div class="text-center w-full max-w-lg px-4">
           <div id="mode-tag" class="inline-block bg-pink-600 text-white text-[8px] font-black uppercase px-3 py-1 rounded-full mb-2 tracking-widest">---</div>
           <h2 id="room-code-display" class="hero-title !text-[3.5rem] mb-2 text-white">----</h2>
-          <button onclick="shareWhatsApp()" class="whatsapp-btn"><span>Compartir link de acceso</span></button>
-          <div id="player-list" class="grid grid-cols-2 gap-2 mt-6 mb-6 max-h-[20vh] overflow-y-auto"></div>
-          <div id="ideas-input-box" class="hidden bg-zinc-900 border border-pink-600/50 p-5 rounded-2xl mb-6 shadow-2xl text-center">
-            <p class="text-[10px] font-black uppercase text-pink-500 mb-3 tracking-widest">Tu aporte para la ronda</p>
-            <input type="text" id="idea-word" class="custom-input !text-xs !py-3" placeholder="Palabra" />
-            <input type="text" id="idea-cat" class="custom-input !text-xs !py-3" placeholder="Categoría" />
-            <button onclick="sendIdea()" class="btn-action !bg-pink-600 !text-white !py-3 text-xs">Enviar</button>
+          <div class="flex items-center justify-center gap-1 mb-2">
+            <span class="text-[9px] font-black uppercase text-zinc-500">Puntos</span>
+            <div class="info-puntos">
+                <span class="bg-zinc-800 text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-zinc-700">?</span>
+                <div class="tooltip">🎭 Mentiroso: +3 si sobrevives.<br>🔍 Inocente: +1 si cazas al mentiroso.</div>
+            </div>
           </div>
+          <div id="player-list" class="grid grid-cols-2 gap-2 mt-4 mb-6 max-h-[35vh] overflow-y-auto"></div>
           <div id="host-controls" class="hidden bg-zinc-900 p-6 rounded-3xl border border-white/10 w-full max-w-[320px] mx-auto">
-            <div id="manual-input-admin" class="hidden mb-4"><input type="text" id="manual-word" class="custom-input !text-xs" placeholder="Palabra fija (Admin)" /></div>
             <div class="mb-4">
               <label class="text-[10px] font-black uppercase block mb-1 text-zinc-500">Mentirosos: <span id="liar-count-val" class="text-pink-500 font-bold">1</span></label>
               <input type="range" id="liar-range" min="1" max="3" value="1" oninput="document.getElementById('liar-count-val').innerText = this.value" />
             </div>
-            <p id="ideas-status" class="text-[9px] font-black text-zinc-400 mb-3 uppercase"></p>
             <button onclick="startGame()" id="btn-start-game" class="btn-action !bg-white !text-black">INICIAR RONDA</button>
           </div>
-          <p id="wait-msg" class="text-zinc-500 font-bold uppercase text-[9px] tracking-widest animate-pulse mt-4 text-center">Esperando jugadores...</p>
         </div>
       </section>
 
       <section id="screen-game-order" class="hidden">
-        <h2 class="hero-title !text-[3rem] mb-6 text-white text-center">ORDEN DE<br>TURNO</h2>
+        <h2 class="hero-title !text-[3rem] mb-6 text-white text-center">TURNO</h2>
         <div id="turn-order-list" class="flex flex-col gap-3 w-full max-w-sm px-4"></div>
-        <div id="host-start-trigger" class="hidden w-full max-w-sm px-4">
-            <button onclick="confirmStartGame()" class="btn-action !bg-pink-600 !text-white mt-8">REVELAR ROLES</button>
-        </div>
-        <p id="player-wait-msg" class="text-zinc-500 font-bold uppercase text-[9px] tracking-widest animate-pulse mt-8 text-center">El anfitrión está preparando los roles...</p>
+        <button id="host-start-trigger" onclick="confirmStartGame()" class="btn-action !bg-pink-600 !text-white mt-8 hidden">VER ROLES</button>
       </section>
 
       <section id="screen-game" class="hidden">
-        <div id="player-view" class="hidden border-2 border-white/10 p-8 text-center w-full max-w-sm rounded-[2.5rem] bg-zinc-900/50">
+        <div id="player-view" class="border-2 border-white/10 p-8 text-center w-full max-w-sm rounded-[2.5rem] bg-zinc-900/50">
           <div id="blur-wrapper" class="blur-content">
-            <p class="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-4 text-center">Tu Identidad</p>
             <h2 id="role-title" class="text-5xl font-black uppercase mb-8 text-center">...</h2>
-            <div id="word-display" class="font-black text-4xl tracking-tighter text-yellow-400 mb-4 uppercase text-center">---</div>
-            <p id="hint-text" class="text-zinc-400 text-sm font-medium uppercase tracking-widest border-t border-white/5 pt-4 text-center"></p>
+            <div id="word-display" class="font-black text-4xl text-yellow-400 mb-4 uppercase">---</div>
+            <p id="hint-text" class="text-zinc-400 text-xs font-bold uppercase border-t border-white/5 pt-4"></p>
           </div>
-          <button onmousedown="toggleReveal(true)" onmouseup="toggleReveal(false)" ontouchstart="toggleReveal(true)" ontouchend="toggleReveal(false)" class="btn-reveal mt-8 bg-white text-black text-[11px] font-black py-5 px-10 rounded-2xl uppercase tracking-widest w-full">MANTÉN PARA VER</button>
+          <button onmousedown="toggleReveal(true)" onmouseup="toggleReveal(false)" ontouchstart="toggleReveal(true)" ontouchend="toggleReveal(false)" class="btn-reveal mt-8 bg-white text-black text-[11px] font-black py-5 px-10 rounded-2xl w-full uppercase">Mantén para ver</button>
         </div>
-        <div id="admin-view" class="hidden text-center">
-          <div class="bg-zinc-900 p-8 rounded-[2.5rem] border border-white/10 mb-6">
-            <p class="text-zinc-500 text-[10px] font-bold uppercase mb-2 text-center">Palabra en juego:</p>
-            <p id="admin-word-info" class="text-4xl font-black text-white uppercase text-center"></p>
-          </div>
+        <div id="admin-view" class="hidden text-center bg-zinc-900 p-8 rounded-[2.5rem] border border-white/10">
+            <p id="admin-word-info" class="text-4xl font-black text-white uppercase"></p>
         </div>
-        <div id="host-game-controls" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-[320px] z-[100] flex flex-col gap-2">
-          <button onclick="openVoting()" class="btn-action !bg-pink-600 !text-white shadow-2xl text-xs">ABRIR VOTACIÓN</button>
-        </div>
+        <div id="host-game-controls" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-[320px] z-[100]"><button onclick="openVoting()" class="btn-action !bg-pink-600 !text-white shadow-2xl">ABRIR VOTACIÓN</button></div>
       </section>
 
       <section id="screen-voting" class="hidden">
-        <h2 class="hero-title !text-[3rem] mb-6 text-white text-center">¿QUIÉN ES EL<br>MENTIROSO?</h2>
+        <h2 class="hero-title !text-[3rem] mb-6 text-white text-center">¿QUIÉN ES?</h2>
         <div id="vote-list" class="flex flex-col gap-3 w-full max-w-sm px-4"></div>
-        <div id="vote-results" class="hidden w-full max-w-sm px-4 mt-6 bg-zinc-900/80 p-6 rounded-3xl border border-white/10">
-            <h3 class="text-pink-500 font-black text-center uppercase text-xs mb-4 tracking-widest">Identidades</h3>
-            <div id="results-display" class="flex flex-col gap-2"></div>
-            <button id="btn-final-reset" onclick="resetGame()" class="btn-action !bg-white !text-black mt-6 text-xs hidden uppercase">Nueva Ronda</button>
+        <div id="vote-results" class="hidden w-full max-w-sm px-4 mt-6 bg-zinc-900/80 p-6 rounded-3xl border border-white/10 text-center">
+            <div id="results-display" class="flex flex-col gap-2 mb-6"></div>
+            <button id="btn-final-reset" onclick="resetGame()" class="btn-action !bg-white !text-black text-xs hidden uppercase">Nueva Ronda</button>
         </div>
-        <p id="vote-wait-msg" class="text-zinc-500 font-bold uppercase text-[9px] tracking-widest animate-pulse mt-8 text-center">Selecciona tus votos...</p>
       </section>
     </div>
 
     <script>
-      var currentRoom = null, myName = "", db = null, myVotes = [];
+      var currentRoom = null, myName = "", db = null, myVotes = [], animShowed = false;
 
       const firebaseConfig = {
         apiKey: "AIzaSyCRoM4Fuz5eGGnXSwNYRn-nf8oII_ulLuQ",
@@ -130,87 +129,74 @@
         appId: "1:968925541268:web:97a255db8eeff952b71581"
       };
 
-      try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error(e); }
-
-      const dictionary = [
-        { w: "LEÓN", c: "ANIMALES" }, { w: "TIGRE", c: "ANIMALES" }, { w: "ELEFANTE", c: "ANIMALES" }, { w: "CEBRA", c: "ANIMALES" }, { w: "GIRAFA", c: "ANIMALES" }, { w: "DELFÍN", c: "ANIMALES" }, { w: "TIBURÓN", c: "ANIMALES" }, { w: "ÁGUILA", c: "ANIMALES" }, { w: "PINGÜINO", c: "ANIMALES" }, { w: "CANGURO", c: "ANIMALES" }, { w: "PANDA", c: "ANIMALES" }, { w: "LOBO", c: "ANIMALES" }, { w: "ZORRO", c: "ANIMALES" }, { w: "MONO", c: "ANIMALES" }, { w: "CABALLO", c: "ANIMALES" }, { w: "VACA", c: "ANIMALES" }, { w: "CERDO", c: "ANIMALES" }, { w: "OVEJA", c: "ANIMALES" }, { w: "GALLINA", c: "ANIMALES" }, { w: "PATO", c: "ANIMALES" }, { w: "CISNE", c: "ANIMALES" }, { w: "LORO", c: "ANIMALES" }, { w: "BÚHO", c: "ANIMALES" }, { w: "MURCIÉLAGO", c: "ANIMALES" }, { w: "RANA", c: "ANIMALES" }, { w: "COCODRILO", c: "ANIMALES" }, { w: "TORTUGA", c: "ANIMALES" }, { w: "SERPIENTE", c: "ANIMALES" }, { w: "BALLENA", c: "ANIMALES" }, { w: "PULPO", c: "ANIMALES" }, { w: "MEDUSA", c: "ANIMALES" }, { w: "ESTRELLA DE MAR", c: "ANIMALES" }, { w: "HORMIGA", c: "ANIMALES" }, { w: "ABEJA", c: "ANIMALES" }, { w: "MARIPOSA", c: "ANIMALES" }, { w: "ARAÑA", c: "ANIMALES" }, { w: "ESCORPIÓN", c: "ANIMALES" }, { w: "CAMELLO", c: "ANIMALES" }, { w: "HIPOPÓTAMO", c: "ANIMALES" }, { w: "RINOCERONTE", c: "ANIMALES" }, { w: "PIZZA", c: "COMIDA" }, { w: "HAMBURGUESA", c: "COMIDA" }, { w: "SUSHI", c: "COMIDA" }, { w: "PASTA", c: "COMIDA" }, { w: "ENSALADA", c: "COMIDA" }, { w: "PAELLA", c: "COMIDA" }, { w: "TACO", c: "COMIDA" }, { w: "BURRITO", c: "COMIDA" }, { w: "LASAÑA", c: "COMIDA" }, { w: "SOPA", c: "COMIDA" }, { w: "FILETE", c: "COMIDA" }, { w: "POLLO ASADO", c: "COMIDA" }, { w: "PESCADO", c: "COMIDA" }, { w: "MARISCO", c: "COMIDA" }, { w: "TORTILLA", c: "COMIDA" }, { w: "CROQUETAS", c: "COMIDA" }, { w: "JAMÓN", c: "COMIDA" }, { w: "QUESO", c: "COMIDA" }, { w: "PAN", c: "COMIDA" }, { w: "ARROZ", c: "COMIDA" }, { w: "MANZANA", c: "COMIDA" }, { w: "PLÁTANO", c: "COMIDA" }, { w: "FRESA", c: "COMIDA" }, { w: "NARANJA", c: "COMIDA" }, { w: "UVA", c: "COMIDA" }, { w: "SANDÍA", c: "COMIDA" }, { w: "PIÑA", c: "COMIDA" }, { w: "KIWI", c: "COMIDA" }, { w: "TOMATE", c: "COMIDA" }, { w: "LECHUGA", c: "COMIDA" }, { w: "ZANAHORIA", c: "COMIDA" }, { w: "PATATA", c: "COMIDA" }, { w: "CEBOLLA", c: "COMIDA" }, { w: "AJO", c: "COMIDA" }, { w: "CHOCOLATE", c: "COMIDA" }, { w: "HELADO", c: "COMIDA" }, { w: "TARTA", c: "COMIDA" }, { w: "GALLETA", c: "COMIDA" }, { w: "DONUT", c: "COMIDA" }, { w: "CAFÉ", c: "COMIDA" }, { w: "TÉ", c: "COMIDA" }, { w: "CERVEZA", c: "COMIDA" }, { w: "VINO", c: "COMIDA" }, { w: "REFRESCO", c: "COMIDA" }, { w: "ZUMO", c: "COMIDA" }, { w: "AGUA", c: "COMIDA" }, { w: "MESA", c: "HOGAR" }, { w: "SILLA", c: "HOGAR" }, { w: "SOFÁ", c: "HOGAR" }, { w: "CAMA", c: "HOGAR" }, { w: "ARMARIO", c: "HOGAR" }, { w: "ESTANTERÍA", c: "HOGAR" }, { w: "LÁMPARA", c: "HOGAR" }, { w: "ESPEJO", c: "HOGAR" }, { w: "CUADRO", c: "HOGAR" }, { w: "RELOJ", c: "HOGAR" }, { w: "TELEVISOR", c: "HOGAR" }, { w: "ORDENADOR", c: "HOGAR" }, { w: "TELÉFONO", c: "HOGAR" }, { w: "NEVERA", c: "HOGAR" }, { w: "LAVADORA", c: "HOGAR" }, { w: "MICROONDAS", c: "HOGAR" }, { w: "HORNO", c: "HOGAR" }, { w: "BATIDORA", c: "HOGAR" }, { w: "CAFETERA", c: "HOGAR" }, { w: "PLATO", c: "HOGAR" }, { w: "VASO", c: "HOGAR" }, { w: "TAZA", c: "HOGAR" }, { w: "TENEDOR", c: "HOGAR" }, { w: "CUCHILLO", c: "HOGAR" }, { w: "CUCHARA", c: "HOGAR" }, { w: "SARTÉN", c: "HOGAR" }, { w: "OLLA", c: "HOGAR" }, { w: "TOALLA", c: "HOGAR" }, { w: "SÁBANA", c: "HOGAR" }, { w: "ALMOHADA", c: "HOGAR" }, { w: "CORTINA", c: "HOGAR" }, { w: "ALFOMBRA", c: "HOGAR" }, { w: "PUERTA", c: "HOGAR" }, { w: "VENTANA", c: "HOGAR" }, { w: "LLAVE", c: "HOGAR" }, { w: "MARTILLO", c: "HOGAR" }, { w: "DESTORNILLADOR", c: "HOGAR" }, { w: "ESCOBA", c: "HOGAR" }, { w: "CUBO", c: "HOGAR" }, { w: "PLANCHA", c: "HOGAR" }, { w: "FÚTBOL", c: "DEPORTES" }, { w: "BALONCESTO", c: "DEPORTES" }, { w: "TENIS", c: "DEPORTES" }, { w: "NATACIÓN", c: "DEPORTES" }, { w: "CICLISMO", c: "DEPORTES" }, { w: "ATLETISMO", c: "DEPORTES" }, { w: "BOXEO", c: "DEPORTES" }, { w: "GOLF", c: "DEPORTES" }, { w: "VOLEIBOL", c: "DEPORTES" }, { w: "RUGBY", c: "DEPORTES" }, { w: "BÉISBOL", c: "DEPORTES" }, { w: "ESQUÍ", c: "DEPORTES" }, { w: "SURF", c: "DEPORTES" }, { w: "SKATE", c: "DEPORTES" }, { w: "KARATE", c: "DEPORTES" }, { w: "YOGA", c: "DEPORTES" }, { w: "AJEDREZ", c: "DEPORTES" }, { w: "BILLAR", c: "DEPORTES" }, { w: "DARDOS", c: "DEPORTES" }, { w: "VIDEOJUEGOS", c: "OCIO" }, { w: "CINE", c: "OCIO" }, { w: "TEATRO", c: "OCIO" }, { w: "MÚSICA", c: "OCIO" }, { w: "LECTURA", c: "OCIO" }, { w: "PINTURA", c: "OCIO" }, { w: "BAILE", c: "OCIO" }, { w: "FOTOGRAFÍA", c: "OCIO" }, { w: "VIAJAR", c: "OCIO" }, { w: "CAMPING", c: "OCIO" }, { w: "SENDERISMO", c: "OCIO" }, { w: "PESCA", c: "OCIO" }, { w: "NAVEGACIÓN", c: "OCIO" }, { w: "MÉDICO", c: "PROFESIONES" }, { w: "ENFERMERO", c: "PROFESIONES" }, { w: "DENTISTA", c: "PROFESIONES" }, { w: "PROFESOR", c: "PROFESIONES" }, { w: "CIENTÍFICO", c: "PROFESIONES" }, { w: "INGENIERO", c: "PROFESIONES" }, { w: "ARQUITECTO", c: "PROFESIONES" }, { w: "ABOGADO", c: "PROFESIONES" }, { w: "POLICÍA", c: "PROFESIONES" }, { w: "BOMBERO", c: "PROFESIONES" }, { w: "PILOTO", c: "PROFESIONES" }, { w: "ASTRONAUTA", c: "PROFESIONES" }, { w: "COCINERO", c: "PROFESIONES" }, { w: "CAMARERO", c: "PROFESIONES" }, { w: "ARTISTA", c: "PROFESIONES" }, { w: "MÚSICO", c: "PROFESIONES" }, { w: "ACTOR", c: "PROFESIONES" }, { w: "ESCRITOR", c: "PROFESIONES" }, { w: "PERIODISTA", c: "PROFESIONES" }, { w: "FOTÓGRAFO", c: "PROFESIONES" }, { w: "DISEÑADOR", c: "PROFESIONES" }, { w: "PROGRAMADOR", c: "PROFESIONES" }, { w: "MECÁNICO", c: "PROFESIONES" }, { w: "ELECTRICISTA", c: "PROFESIONES" }, { w: "FONTANERO", c: "PROFESIONES" }, { w: "CARPINTERO", c: "PROFESIONES" }, { w: "ALBAÑIL", c: "PROFESIONES" }, { w: "GRANJERO", c: "PROFESIONES" }, { w: "VETERINARIO", c: "PROFESIONES" }, { w: "PELUQUERO", c: "PROFESIONES" }, { w: "PLAYA", c: "LUGARES" }, { w: "MONTAÑA", c: "LUGARES" }, { w: "BOSQUE", c: "LUGARES" }, { w: "DESIERTO", c: "LUGARES" }, { w: "SELVA", c: "LUGARES" }, { w: "RÍO", c: "LUGARES" }, { w: "LAGO", c: "LUGARES" }, { w: "OCÉANO", c: "LUGARES" }, { w: "ISLA", c: "LUGARES" }, { w: "VOLCÁN", c: "LUGARES" }, { w: "CIUDAD", c: "LUGARES" }, { w: "PUEBLO", c: "LUGARES" }, { w: "PARQUE", c: "LUGARES" }, { w: "ZOO", c: "LUGARES" }, { w: "MUSEO", c: "LUGARES" }, { w: "BIBLIOTECA", c: "LUGARES" }, { w: "ESCUELA", c: "LUGARES" }, { w: "UNIVERSIDAD", c: "LUGARES" }, { w: "HOSPITAL", c: "LUGARES" }, { w: "FARMACIA", c: "LUGARES" }, { w: "SUPERMERCADO", c: "LUGARES" }, { w: "RESTAURANTE", c: "LUGARES" }, { w: "HOTEL", c: "LUGARES" }, { w: "AEROPUERTO", c: "LUGARES" }, { w: "ESTACIÓN", c: "LUGARES" }, { w: "CASTILLO", c: "LUGARES" }, { w: "IGLESIA", c: "LUGARES" }, { w: "PUENTE", c: "LUGARES" }, { w: "RASCACIELOS", c: "LUGARES" }, { w: "CUEVA", c: "LUGARES" }, { w: "COCHE", c: "TRANSPORTE" }, { w: "AUTOBÚS", c: "TRANSPORTE" }, { w: "TREN", c: "TRANSPORTE" }, { w: "METRO", c: "TRANSPORTE" }, { w: "TAXI", c: "TRANSPORTE" }, { w: "MOTO", c: "TRANSPORTE" }, { w: "BICICLETA", c: "TRANSPORTE" }, { w: "PATINETE", c: "TRANSPORTE" }, { w: "CAMIÓN", c: "TRANSPORTE" }, { w: "FURGONETA", c: "TRANSPORTE" }, { w: "BARCO", c: "TRANSPORTE" }, { w: "SUBMARINO", c: "TRANSPORTE" }, { w: "HELICÓPTERO", c: "TRANSPORTE" }, { w: "COHETE", c: "TRANSPORTE" }, { w: "GLOBO", c: "TRANSPORTE" }, { w: "CAMISETA", c: "ROPA" }, { w: "PANTALÓN", c: "ROPA" }, { w: "VESTIDO", c: "ROPA" }, { w: "FALDA", c: "ROPA" }, { w: "CHAQUETA", c: "ROPA" }, { w: "ABRIGO", c: "ROPA" }, { w: "JERSEY", c: "ROPA" }, { w: "ZAPATOS", c: "ROPA" }, { w: "ZAPATILLAS", c: "ROPA" }, { w: "BOTAS", c: "ROPA" }, { w: "SOMBRERO", c: "ROPA" }, { w: "GORRA", c: "ROPA" }, { w: "GUANTES", c: "ROPA" }, { w: "BUFANDA", c: "ROPA" }, { w: "CINTURÓN", c: "ROPA" }, { w: "GAFAS", c: "ACCESORIOS" }, { w: "RELOJ DE PULSERA", c: "ACCESORIOS" }, { w: "ANILLO", c: "ACCESORIOS" }, { w: "COLLAR", c: "ACCESORIOS" }, { w: "PENDIENTES", c: "ACCESORIOS" }, { w: "BOLSO", c: "ACCESORIOS" }, { w: "MOCHILA", c: "ACCESORIOS" }, { w: "PARAGUAS", c: "ACCESORIOS" }, { w: "ÁATOMO", c: "CIENCIA" }, { w: "CÉLULA", c: "CIENCIA" }, { w: "PLANETA", c: "CIENCIA" }, { w: "ESTRELLA", c: "CIENCIA" }, { w: "GALAXIA", c: "CIENCIA" }, { w: "GRAVEDAD", c: "CIENCIA" }, { w: "ENERGÍA", c: "CIENCIA" }, { w: "ROBOT", c: "TECNOLOGÍA" }, { w: "INTERNET", c: "TECNOLOGÍA" }, { w: "SOFTWARE", c: "TECNOLOGÍA" }, { w: "BATERÍA", c: "TECNOLOGÍA" }, { w: "CÁMARA", c: "TECNOLOGÍA" }, { w: "ALTAVOZ", c: "TECNOLOGÍA" }, { w: "PANTALLA", c: "TECNOLOGÍA" }, { w: "TECLADO", c: "TECNOLOGÍA" }, { w: "RATÓN", c: "TECNOLOGÍA" }, { w: "SATÉLITE", c: "TECNOLOGÍA" }, { w: "DRON", c: "TECNOLOGÍA" }, { w: "GUITARRA", c: "MÚSICA" }, { w: "PIANO", c: "MÚSICA" }, { w: "VIOLÍN", c: "MÚSICA" }, { w: "BATERÍA MÚSICAL", c: "MÚSICA" }, { w: "FLAUTA", c: "MÚSICA" }, { w: "TROMPETA", c: "MÚSICA" }, { w: "ACORDEÓN", c: "MÚSICA" }, { w: "HARPA", c: "MÚSICA" }, { w: "PIRÁMIDE", c: "HISTORIA" }, { w: "MOMIA", c: "HISTORIA" }, { w: "CABALLERO", c: "HISTORIA" }, { w: "VIKINGO", c: "HISTORIA" }, { w: "PIRATA", c: "HISTORIA" }, { w: "DINOSAURIO", c: "HISTORIA" }, { w: "FÓSIL", c: "HISTORIA" }, { w: "BRÚJULA", c: "HISTORIA" }, { w: "MAPA", c: "HISTORIA" }, { w: "ESTATUA", c: "ARTE" }, { w: "PINCEL", c: "ARTE" }, { w: "LIENZO", c: "ARTE" }, { w: "ESCULTURA", c: "ARTE" }, { w: "POESÍA", c: "ARTE" }, { w: "CÓMIC", c: "ARTE" }, { w: "MANGA", c: "ARTE" }, { w: "DIBUJO ANIMADO", c: "ARTE" }, { w: "FUEGO", c: "ELEMENTOS" }, { w: "HIELO", c: "ELEMENTOS" }, { w: "RAYO", c: "ELEMENTOS" }, { w: "VIENTO", c: "ELEMENTOS" }, { w: "TERREMOTO", c: "ELEMENTOS" }, { w: "LLUVIA", c: "ELEMENTOS" }, { w: "NIEVE", c: "ELEMENTOS" }, { w: "NIEBLA", c: "ELEMENTOS" }, { w: "ARCOIRIS", c: "ELEMENTOS" }, { w: "ECLIPSE", c: "ELEMENTOS" }
-      ];
+      firebase.initializeApp(firebaseConfig); db = firebase.database();
 
       window.onload = () => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.has("join")) document.getElementById("roomInput").value = params.get("join");
-        const savedRoom = localStorage.getItem("mentiroso_room"), savedName = localStorage.getItem("mentiroso_name");
-        if (savedRoom && savedName) {
-            db.ref("rooms/" + savedRoom).once("value", (s) => {
-                if (s.exists()) { myName = savedName; currentRoom = savedRoom; listenToRoom(savedRoom); db.ref(`rooms/${savedRoom}/players/${savedName}`).set(true); }
-                else { localStorage.clear(); document.getElementById("screen-lobby").classList.remove("hidden"); }
+        const sR = localStorage.getItem("mentiroso_room"), sN = localStorage.getItem("mentiroso_name");
+        if (sR && sN) {
+            db.ref("rooms/" + sR).once("value", s => {
+                if (s.exists()) { myName = sN; currentRoom = sR; listenToRoom(sR); db.ref(`rooms/${sR}/players/${sN}`).set(true); }
+                else logout();
             });
         } else document.getElementById("screen-lobby").classList.remove("hidden");
       };
 
+      function logout() { if(currentRoom && myName) db.ref(`rooms/${currentRoom}/players/${myName}`).remove(); localStorage.clear(); location.href = window.location.origin + window.location.pathname; }
       function showCreateOptions(s = true) { document.getElementById("lobby-main").classList.toggle("hidden", s); document.getElementById("create-options").classList.toggle("hidden", !s); }
       function toggleReveal(s) { document.getElementById("blur-wrapper").className = s ? "show-content" : "blur-content"; }
       const getAvatar = (n) => `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(n)}`;
-      function shareWhatsApp() { const link = `https://feelis3.github.io/mentiroso.github.io/?join=${currentRoom}`; window.open(`https://wa.me/?text=${encodeURIComponent("¡Únete a MENTIROSO! 🤫 " + link)}`, "_blank"); }
-      function logout() { if (currentRoom && myName && db) db.ref(`rooms/${currentRoom}/players/${myName}`).remove(); localStorage.clear(); location.href = window.location.origin + window.location.pathname; }
-      function kickPlayer(pName) { if (confirm(`¿Expulsar a ${pName}?`)) db.ref(`rooms/${currentRoom}/players/${pName}`).set("KICKED"); }
+      function kickPlayer(p) { if (confirm(`¿Expulsar a ${p}?`)) db.ref(`rooms/${currentRoom}/players/${p}`).set("KICKED"); }
 
       function finalizeCreation(mode) {
-        let name = document.getElementById("username").value.trim().toUpperCase();
-        if (!name) return alert("Ponte nombre");
+        let name = document.getElementById("username").value.trim().toUpperCase(); if (!name) return alert("Nombre...");
         const code = Math.random().toString(36).substring(2, 6).toUpperCase();
         myName = name; currentRoom = code;
-        const data = { host: myName, status: "waiting", mode: mode, players: {} };
-        if (mode !== "admin") data.players[myName] = true;
-        db.ref("rooms/" + code).set(data).then(() => { localStorage.setItem("mentiroso_room", code); localStorage.setItem("mentiroso_name", myName); listenToRoom(code); });
+        db.ref("rooms/" + code).set({ host: myName, status: "waiting", mode, players: {[myName]:true}, points: {[myName]:0} }).then(() => { localStorage.setItem("mentiroso_room", code); localStorage.setItem("mentiroso_name", myName); listenToRoom(code); });
       }
 
       function joinRoom() {
         let name = document.getElementById("username").value.trim().toUpperCase();
         const code = document.getElementById("roomInput").value.trim().toUpperCase();
         if (!code || !name) return alert("Faltan datos");
-        db.ref("rooms/" + code).once("value", (s) => {
+        db.ref("rooms/" + code).once("value", s => {
           if (!s.exists()) return alert("SALA NO EXISTE");
-          const d = s.val();
-          if (localStorage.getItem("mentiroso_room") !== code && d.players && d.players[name]) name += "_" + Math.floor(Math.random() * 99);
           myName = name; currentRoom = code;
           localStorage.setItem("mentiroso_room", code); localStorage.setItem("mentiroso_name", myName);
-          db.ref(`rooms/${code}/players/${myName}`).set(true).then(() => listenToRoom(code));
+          db.ref(`rooms/${code}/players/${myName}`).set(true);
+          db.ref(`rooms/${code}/points/${myName}`).transaction(p => p || 0);
+          listenToRoom(code);
         });
       }
 
       function startGame() {
-        const numLiars = parseInt(document.getElementById("liar-range").value);
-        db.ref("rooms/" + currentRoom).once("value", (s) => {
-          const d = s.val(), players = Object.keys(d.players || {}).filter(k => d.players[k] !== "KICKED");
-          if (players.length < numLiars + 1) return alert("Pocos jugadores");
-          let shuffled = [...players].sort(() => 0.5 - Math.random());
-          db.ref("rooms/" + currentRoom).update({ status: "showing_order", turnOrder: shuffled });
+        const num = parseInt(document.getElementById("liar-range").value);
+        db.ref("rooms/" + currentRoom).once("value", s => {
+          const players = Object.keys(s.val().players || {}).filter(k => s.val().players[k] !== "KICKED");
+          if (players.length < num + 1) return alert("Pocos jugadores");
+          db.ref("rooms/" + currentRoom).update({ status: "showing_order", turnOrder: players.sort(() => 0.5 - Math.random()), animShowed: false });
         });
       }
 
+const dictionary = [
+        { w: "LEÓN", c: "ANIMALES" }, { w: "TIGRE", c: "ANIMALES" }, { w: "ELEFANTE", c: "ANIMALES" }, { w: "CEBRA", c: "ANIMALES" }, { w: "GIRAFA", c: "ANIMALES" }, { w: "DELFÍN", c: "ANIMALES" }, { w: "TIBURÓN", c: "ANIMALES" }, { w: "ÁGUILA", c: "ANIMALES" }, { w: "PINGÜINO", c: "ANIMALES" }, { w: "CANGURO", c: "ANIMALES" }, { w: "PANDA", c: "ANIMALES" }, { w: "LOBO", c: "ANIMALES" }, { w: "ZORRO", c: "ANIMALES" }, { w: "MONO", c: "ANIMALES" }, { w: "CABALLO", c: "ANIMALES" }, { w: "VACA", c: "ANIMALES" }, { w: "CERDO", c: "ANIMALES" }, { w: "OVEJA", c: "ANIMALES" }, { w: "GALLINA", c: "ANIMALES" }, { w: "PATO", c: "ANIMALES" }, { w: "CISNE", c: "ANIMALES" }, { w: "LORO", c: "ANIMALES" }, { w: "BÚHO", c: "ANIMALES" }, { w: "MURCIÉLAGO", c: "ANIMALES" }, { w: "RANA", c: "ANIMALES" }, { w: "COCODRILO", c: "ANIMALES" }, { w: "TORTUGA", c: "ANIMALES" }, { w: "SERPIENTE", c: "ANIMALES" }, { w: "BALLENA", c: "ANIMALES" }, { w: "PULPO", c: "ANIMALES" }, { w: "MEDUSA", c: "ANIMALES" }, { w: "ESTRELLA DE MAR", c: "ANIMALES" }, { w: "HORMIGA", c: "ANIMALES" }, { w: "ABEJA", c: "ANIMALES" }, { w: "MARIPOSA", c: "ANIMALES" }, { w: "ARAÑA", c: "ANIMALES" }, { w: "ESCORPIÓN", c: "ANIMALES" }, { w: "CAMELLO", c: "ANIMALES" }, { w: "HIPOPÓTAMO", c: "ANIMALES" }, { w: "RINOCERONTE", c: "ANIMALES" }, { w: "PIZZA", c: "COMIDA" }, { w: "HAMBURGUESA", c: "COMIDA" }, { w: "SUSHI", c: "COMIDA" }, { w: "PASTA", c: "COMIDA" }, { w: "ENSALADA", c: "COMIDA" }, { w: "PAELLA", c: "COMIDA" }, { w: "TACO", c: "COMIDA" }, { w: "BURRITO", c: "COMIDA" }, { w: "LASAÑA", c: "COMIDA" }, { w: "SOPA", c: "COMIDA" }, { w: "FILETE", c: "COMIDA" }, { w: "POLLO ASADO", c: "COMIDA" }, { w: "PESCADO", c: "COMIDA" }, { w: "MARISCO", c: "COMIDA" }, { w: "TORTILLA", c: "COMIDA" }, { w: "CROQUETAS", c: "COMIDA" }, { w: "JAMÓN", c: "COMIDA" }, { w: "QUESO", c: "COMIDA" }, { w: "PAN", c: "COMIDA" }, { w: "ARROZ", c: "COMIDA" }, { w: "MANZANA", c: "COMIDA" }, { w: "PLÁTANO", c: "COMIDA" }, { w: "FRESA", c: "COMIDA" }, { w: "NARANJA", c: "COMIDA" }, { w: "UVA", c: "COMIDA" }, { w: "SANDÍA", c: "COMIDA" }, { w: "PIÑA", c: "COMIDA" }, { w: "KIWI", c: "COMIDA" }, { w: "TOMATE", c: "COMIDA" }, { w: "LECHUGA", c: "COMIDA" }, { w: "ZANAHORIA", c: "COMIDA" }, { w: "PATATA", c: "COMIDA" }, { w: "CEBOLLA", c: "COMIDA" }, { w: "AJO", c: "COMIDA" }, { w: "CHOCOLATE", c: "COMIDA" }, { w: "HELADO", c: "COMIDA" }, { w: "TARTA", c: "COMIDA" }, { w: "GALLETA", c: "COMIDA" }, { w: "DONUT", c: "COMIDA" }, { w: "CAFÉ", c: "COMIDA" }, { w: "TÉ", c: "COMIDA" }, { w: "CERVEZA", c: "COMIDA" }, { w: "VINO", c: "COMIDA" }, { w: "REFRESCO", c: "COMIDA" }, { w: "ZUMO", c: "COMIDA" }, { w: "AGUA", c: "COMIDA" }, { w: "MESA", c: "HOGAR" }, { w: "SILLA", c: "HOGAR" }, { w: "SOFÁ", c: "HOGAR" }, { w: "CAMA", c: "HOGAR" }, { w: "ARMARIO", c: "HOGAR" }, { w: "ESTANTERÍA", c: "HOGAR" }, { w: "LÁMPARA", c: "HOGAR" }, { w: "ESPEJO", c: "HOGAR" }, { w: "CUADRO", c: "HOGAR" }, { w: "RELOJ", c: "HOGAR" }, { w: "TELEVISOR", c: "HOGAR" }, { w: "ORDENADOR", c: "HOGAR" }, { w: "TELÉFONO", c: "HOGAR" }, { w: "NEVERA", c: "HOGAR" }, { w: "LAVADORA", c: "HOGAR" }, { w: "MICROONDAS", c: "HOGAR" }, { w: "HORNO", c: "HOGAR" }, { w: "BATIDORA", c: "HOGAR" }, { w: "CAFETERA", c: "HOGAR" }, { w: "PLATO", c: "HOGAR" }, { w: "VASO", c: "HOGAR" }, { w: "TAZA", c: "HOGAR" }, { w: "TENEDOR", c: "HOGAR" }, { w: "CUCHILLO", c: "HOGAR" }, { w: "CUCHARA", c: "HOGAR" }, { w: "SARTÉN", c: "HOGAR" }, { w: "OLLA", c: "HOGAR" }, { w: "TOALLA", c: "HOGAR" }, { w: "SÁBANA", c: "HOGAR" }, { w: "ALMOHADA", c: "HOGAR" }, { w: "CORTINA", c: "HOGAR" }, { w: "ALFOMBRA", c: "HOGAR" }, { w: "PUERTA", c: "HOGAR" }, { w: "VENTANA", c: "HOGAR" }, { w: "LLAVE", c: "HOGAR" }, { w: "MARTILLO", c: "HOGAR" }, { w: "DESTORNILLADOR", c: "HOGAR" }, { w: "ESCOBA", c: "HOGAR" }, { w: "CUBO", c: "HOGAR" }, { w: "PLANCHA", c: "HOGAR" }, { w: "FÚTBOL", c: "DEPORTES" }, { w: "BALONCESTO", c: "DEPORTES" }, { w: "TENIS", c: "DEPORTES" }, { w: "NATACIÓN", c: "DEPORTES" }, { w: "CICLISMO", c: "DEPORTES" }, { w: "ATLETISMO", c: "DEPORTES" }, { w: "BOXEO", c: "DEPORTES" }, { w: "GOLF", c: "DEPORTES" }, { w: "VOLEIBOL", c: "DEPORTES" }, { w: "RUGBY", c: "DEPORTES" }, { w: "BÉISBOL", c: "DEPORTES" }, { w: "ESQUÍ", c: "DEPORTES" }, { w: "SURF", c: "DEPORTES" }, { w: "SKATE", c: "DEPORTES" }, { w: "KARATE", c: "DEPORTES" }, { w: "YOGA", c: "DEPORTES" }, { w: "AJEDREZ", c: "DEPORTES" }, { w: "BILLAR", c: "DEPORTES" }, { w: "DARDOS", c: "DEPORTES" }, { w: "VIDEOJUEGOS", c: "OCIO" }, { w: "CINE", c: "OCIO" }, { w: "TEATRO", c: "OCIO" }, { w: "MÚSICA", c: "OCIO" }, { w: "LECTURA", c: "OCIO" }, { w: "PINTURA", c: "OCIO" }, { w: "BAILE", c: "OCIO" }, { w: "FOTOGRAFÍA", c: "OCIO" }, { w: "VIAJAR", c: "OCIO" }, { w: "CAMPING", c: "OCIO" }, { w: "SENDERISMO", c: "OCIO" }, { w: "PESCA", c: "OCIO" }, { w: "NAVEGACIÓN", c: "OCIO" }, { w: "MÉDICO", c: "PROFESIONES" }, { w: "ENFERMERO", c: "PROFESIONES" }, { w: "DENTISTA", c: "PROFESIONES" }, { w: "PROFESOR", c: "PROFESIONES" }, { w: "CIENTÍFICO", c: "PROFESIONES" }, { w: "INGENIERO", c: "PROFESIONES" }, { w: "ARQUITECTO", c: "PROFESIONES" }, { w: "ABOGADO", c: "PROFESIONES" }, { w: "POLICÍA", c: "PROFESIONES" }, { w: "BOMBERO", c: "PROFESIONES" }, { w: "PILOTO", c: "PROFESIONES" }, { w: "ASTRONAUTA", c: "PROFESIONES" }, { w: "COCINERO", c: "PROFESIONES" }, { w: "CAMARERO", c: "PROFESIONES" }, { w: "ARTISTA", c: "PROFESIONES" }, { w: "MÚSICO", c: "PROFESIONES" }, { w: "ACTOR", c: "PROFESIONES" }, { w: "ESCRITOR", c: "PROFESIONES" }, { w: "PERIODISTA", c: "PROFESIONES" }, { w: "FOTÓGRAFO", c: "PROFESIONES" }, { w: "DISEÑADOR", c: "PROFESIONES" }, { w: "PROGRAMADOR", c: "PROFESIONES" }, { w: "MECÁNICO", c: "PROFESIONES" }, { w: "ELECTRICISTA", c: "PROFESIONES" }, { w: "FONTANERO", c: "PROFESIONES" }, { w: "CARPINTERO", c: "PROFESIONES" }, { w: "ALBAÑIL", c: "PROFESIONES" }, { w: "GRANJERO", c: "PROFESIONES" }, { w: "VETERINARIO", c: "PROFESIONES" }, { w: "PELUQUERO", c: "PROFESIONES" }, { w: "PLAYA", c: "LUGARES" }, { w: "MONTAÑA", c: "LUGARES" }, { w: "BOSQUE", c: "LUGARES" }, { w: "DESIERTO", c: "LUGARES" }, { w: "SELVA", c: "LUGARES" }, { w: "RÍO", c: "LUGARES" }, { w: "LAGO", c: "LUGARES" }, { w: "OCÉANO", c: "LUGARES" }, { w: "ISLA", c: "LUGARES" }, { w: "VOLCÁN", c: "LUGARES" }, { w: "CIUDAD", c: "LUGARES" }, { w: "PUEBLO", c: "LUGARES" }, { w: "PARQUE", c: "LUGARES" }, { w: "ZOO", c: "LUGARES" }, { w: "MUSEO", c: "LUGARES" }, { w: "BIBLIOTECA", c: "LUGARES" }, { w: "ESCUELA", c: "LUGARES" }, { w: "UNIVERSIDAD", c: "LUGARES" }, { w: "HOSPITAL", c: "LUGARES" }, { w: "FARMACIA", c: "LUGARES" }, { w: "SUPERMERCADO", c: "LUGARES" }, { w: "RESTAURANTE", c: "LUGARES" }, { w: "HOTEL", c: "LUGARES" }, { w: "AEROPUERTO", c: "LUGARES" }, { w: "ESTACIÓN", c: "LUGARES" }, { w: "CASTILLO", c: "LUGARES" }, { w: "IGLESIA", c: "LUGARES" }, { w: "PUENTE", c: "LUGARES" }, { w: "RASCACIELOS", c: "LUGARES" }, { w: "CUEVA", c: "LUGARES" }, { w: "COCHE", c: "TRANSPORTE" }, { w: "AUTOBÚS", c: "TRANSPORTE" }, { w: "TREN", c: "TRANSPORTE" }, { w: "METRO", c: "TRANSPORTE" }, { w: "TAXI", c: "TRANSPORTE" }, { w: "MOTO", c: "TRANSPORTE" }, { w: "BICICLETA", c: "TRANSPORTE" }, { w: "PATINETE", c: "TRANSPORTE" }, { w: "CAMIÓN", c: "TRANSPORTE" }, { w: "FURGONETA", c: "TRANSPORTE" }, { w: "BARCO", c: "TRANSPORTE" }, { w: "SUBMARINO", c: "TRANSPORTE" }, { w: "HELICÓPTERO", c: "TRANSPORTE" }, { w: "COHETE", c: "TRANSPORTE" }, { w: "GLOBO", c: "TRANSPORTE" }, { w: "CAMISETA", c: "ROPA" }, { w: "PANTALÓN", c: "ROPA" }, { w: "VESTIDO", c: "ROPA" }, { w: "FALDA", c: "ROPA" }, { w: "CHAQUETA", c: "ROPA" }, { w: "ABRIGO", c: "ROPA" }, { w: "JERSEY", c: "ROPA" }, { w: "ZAPATOS", c: "ROPA" }, { w: "ZAPATILLAS", c: "ROPA" }, { w: "BOTAS", c: "ROPA" }, { w: "SOMBRERO", c: "ROPA" }, { w: "GORRA", c: "ROPA" }, { w: "GUANTES", c: "ROPA" }, { w: "BUFANDA", c: "ROPA" }, { w: "CINTURÓN", c: "ROPA" }, { w: "GAFAS", c: "ACCESORIOS" }, { w: "RELOJ DE PULSERA", c: "ACCESORIOS" }, { w: "ANILLO", c: "ACCESORIOS" }, { w: "COLLAR", c: "ACCESORIOS" }, { w: "PENDIENTES", c: "ACCESORIOS" }, { w: "BOLSO", c: "ACCESORIOS" }, { w: "MOCHILA", c: "ACCESORIOS" }, { w: "PARAGUAS", c: "ACCESORIOS" }, { w: "ÁATOMO", c: "CIENCIA" }, { w: "CÉLULA", c: "CIENCIA" }, { w: "PLANETA", c: "CIENCIA" }, { w: "ESTRELLA", c: "CIENCIA" }, { w: "GALAXIA", c: "CIENCIA" }, { w: "GRAVEDAD", c: "CIENCIA" }, { w: "ENERGÍA", c: "CIENCIA" }, { w: "ROBOT", c: "TECNOLOGÍA" }, { w: "INTERNET", c: "TECNOLOGÍA" }, { w: "SOFTWARE", c: "TECNOLOGÍA" }, { w: "BATERÍA", c: "TECNOLOGÍA" }, { w: "CÁMARA", c: "TECNOLOGÍA" }, { w: "ALTAVOZ", c: "TECNOLOGÍA" }, { w: "PANTALLA", c: "TECNOLOGÍA" }, { w: "TECLADO", c: "TECNOLOGÍA" }, { w: "RATÓN", c: "TECNOLOGÍA" }, { w: "SATÉLITE", c: "TECNOLOGÍA" }, { w: "DRON", c: "TECNOLOGÍA" }, { w: "GUITARRA", c: "MÚSICA" }, { w: "PIANO", c: "MÚSICA" }, { w: "VIOLÍN", c: "MÚSICA" }, { w: "BATERÍA MÚSICAL", c: "MÚSICA" }, { w: "FLAUTA", c: "MÚSICA" }, { w: "TROMPETA", c: "MÚSICA" }, { w: "ACORDEÓN", c: "MÚSICA" }, { w: "HARPA", c: "MÚSICA" }, { w: "PIRÁMIDE", c: "HISTORIA" }, { w: "MOMIA", c: "HISTORIA" }, { w: "CABALLERO", c: "HISTORIA" }, { w: "VIKINGO", c: "HISTORIA" }, { w: "PIRATA", c: "HISTORIA" }, { w: "DINOSAURIO", c: "HISTORIA" }, { w: "FÓSIL", c: "HISTORIA" }, { w: "BRÚJULA", c: "HISTORIA" }, { w: "MAPA", c: "HISTORIA" }, { w: "ESTATUA", c: "ARTE" }, { w: "PINCEL", c: "ARTE" }, { w: "LIENZO", c: "ARTE" }, { w: "ESCULTURA", c: "ARTE" }, { w: "POESÍA", c: "ARTE" }, { w: "CÓMIC", c: "ARTE" }, { w: "MANGA", c: "ARTE" }, { w: "DIBUJO ANIMADO", c: "ARTE" }, { w: "FUEGO", c: "ELEMENTOS" }, { w: "HIELO", c: "ELEMENTOS" }, { w: "RAYO", c: "ELEMENTOS" }, { w: "VIENTO", c: "ELEMENTOS" }, { w: "TERREMOTO", c: "ELEMENTOS" }, { w: "LLUVIA", c: "ELEMENTOS" }, { w: "NIEVE", c: "ELEMENTOS" }, { w: "NIEBLA", c: "ELEMENTOS" }, { w: "ARCOIRIS", c: "ELEMENTOS" }, { w: "ECLIPSE", c: "ELEMENTOS" }
+      ];
       function confirmStartGame() {
-        db.ref("rooms/" + currentRoom).once("value", (s) => {
-          const d = s.val(), players = d.turnOrder, numLiars = parseInt(document.getElementById("liar-range").value);
-          let item; const manualW = document.getElementById("manual-word").value.trim();
-          if (d.mode === "admin" && manualW !== "") item = { w: manualW.toUpperCase(), c: "MANUAL" };
-          else if (d.mode === "ideas" && d.ideas) { const pool = Object.values(d.ideas); item = pool[Math.floor(Math.random() * pool.length)]; }
-          else item = dictionary[Math.floor(Math.random() * dictionary.length)];
-          let assigns = {}; players.forEach((p, i) => (assigns[p] = i < numLiars ? "mentiroso" : "inocente"));
-          db.ref("rooms/" + currentRoom).update({ status: "started", word: item.w, category: item.c, assignments: assigns });
+        db.ref("rooms/" + currentRoom).once("value", s => {
+          const d = s.val(), num = parseInt(document.getElementById("liar-range").value);
+          let item = dictionary[Math.floor(Math.random() * dictionary.length)];
+          let assigns = {}; d.turnOrder.forEach((p, i) => assigns[p] = i < num ? "mentiroso" : "inocente");
+          db.ref("rooms/" + currentRoom).update({ status: "started", word: item.w, category: item.c, assignments: assigns, votes: null });
         });
       }
 
       function openVoting() { db.ref(`rooms/${currentRoom}`).update({ status: "voting", votes: {} }); }
-
       function castVote(target) {
-        db.ref(`rooms/${currentRoom}`).once('value', (s) => {
-            const d = s.val();
-            const max = Object.values(d.assignments).filter(r => r === "mentiroso").length;
+        db.ref(`rooms/${currentRoom}`).once('value', s => {
+            const d = s.val(), max = Object.values(d.assignments).filter(r => r === "mentiroso").length;
             if (myVotes.includes(target)) myVotes = myVotes.filter(v => v !== target);
             else if (myVotes.length < max) myVotes.push(target);
-            if (myVotes.length === max) { db.ref(`rooms/${currentRoom}/votes/${myName}`).set(myVotes); }
-            else { renderVoteList(d); document.getElementById("vote-wait-msg").innerText = `Votos: ${myVotes.length}/${max}`; }
+            if (myVotes.length === max) { db.ref(`rooms/${currentRoom}/votes/${myName}`).set(myVotes); myVotes = []; }
+            else renderVoteList(d);
         });
       }
 
@@ -218,65 +204,75 @@
         const pKeys = Object.keys(d.players).filter(k => d.players[k] !== "KICKED");
         document.getElementById("vote-list").innerHTML = pKeys.map(u => {
             const sel = myVotes.includes(u);
-            return `<button onclick="castVote('${u}')" class="player-card w-full ${sel ? 'border-pink-600 bg-pink-600/20' : ''}">
-                <img src="${getAvatar(u)}" class="avatar"><span class="font-black text-[10px] uppercase">${u}</span>
-                ${sel ? '<span class="ml-auto text-[8px] bg-pink-600 px-2 rounded-full">OK</span>' : ''}</button>`;
+            return `<button onclick="castVote('${u}')" class="player-card w-full ${sel ? 'border-pink-600 bg-pink-600/20' : ''}"><img src="${getAvatar(u)}" class="avatar"><span class="font-black text-xs uppercase">${u}</span>${sel ? '<span class="ml-auto text-[8px] bg-pink-600 px-2 rounded-full">OK</span>' : ''}</button>`;
         }).join("");
       }
 
       function listenToRoom(code) {
-        if(!db) return;
-        db.ref(`rooms/${code}/players/${myName}`).onDisconnect().remove();
-        document.getElementById("btn-logout").classList.remove("hidden");
-        document.getElementById("room-code-display").innerText = code;
-        db.ref("rooms/" + code).on("value", (s) => {
-          const d = s.val(); if (!d) return logout();
-          if (d.players && d.players[myName] === "KICKED") { alert("EXPULSADO"); localStorage.clear(); return location.reload(); }
+        db.ref("rooms/" + code).on("value", s => {
+          const d = s.val(); if (!d) return;
           const pKeys = d.players ? Object.keys(d.players).filter(k => d.players[k] !== "KICKED") : [];
-          if (!d.host || (d.mode !== 'admin' && !d.players[d.host])) if(pKeys.length > 0) db.ref(`rooms/${code}/host`).set(pKeys[0]);
+          if (!d.host || !d.players[d.host]) if (pKeys.length > 0) db.ref(`rooms/${code}/host`).set(pKeys[0]);
           const isIHost = d.host === myName;
+          
+          document.getElementById("btn-logout").classList.remove("hidden");
           ["screen-lobby", "screen-room", "screen-game-order", "screen-game", "screen-voting"].forEach(id => document.getElementById(id).classList.add("hidden"));
 
           if (d.status === "waiting") {
             document.getElementById("screen-room").classList.remove("hidden");
+            document.getElementById("room-code-display").innerText = code;
             document.getElementById("mode-tag").innerText = "MODO: " + d.mode.toUpperCase();
-            document.getElementById("player-list").innerHTML = pKeys.map(u => `<div class="player-card">${isIHost && u !== myName ? `<div class="kick-badge" onclick="kickPlayer('${u}')">×</div>` : ""}<img src="${getAvatar(u)}" class="avatar"><span class="font-black text-[10px] uppercase truncate">${u}</span></div>`).join("");
-            if (isIHost) { document.getElementById("host-controls").classList.remove("hidden"); if (d.mode === "ideas") { const count = d.ideas ? Object.keys(d.ideas).length : 0; document.getElementById("ideas-status").innerText = `IDEAS: ${count} / ${pKeys.length}`; document.getElementById("btn-start-game").disabled = count < pKeys.length || pKeys.length === 0; } }
-            if (d.mode === "ideas" && d.players[myName]) document.getElementById("ideas-input-box").classList.toggle("hidden", !!(d.ideas && d.ideas[myName]));
+            document.getElementById("player-list").innerHTML = pKeys.map(u => `<div class="player-card">${isIHost && u !== myName ? `<div class="kick-badge" onclick="kickPlayer('${u}')">×</div>` : ""}<img src="${getAvatar(u)}" class="avatar"><div class="flex flex-col text-left leading-none"><span class="font-black text-[11px] uppercase">${u}</span><span class="text-pink-500 font-black text-[9px] mt-1">${d.points ? (d.points[u] || 0) : 0} PTS</span></div></div>`).join("");
+            if (isIHost) document.getElementById("host-controls").classList.remove("hidden");
           } 
           else if (d.status === "showing_order") {
             document.getElementById("screen-game-order").classList.remove("hidden");
-            document.getElementById("turn-order-list").innerHTML = d.turnOrder.map((p, i) => `<div class="player-card !justify-start"><div class="bg-pink-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-black text-xs">${i+1}</div><img src="${getAvatar(p)}" class="avatar !w-8 !h-8"><span class="font-black text-sm uppercase">${p}</span></div>`).join("");
+            document.getElementById("turn-order-list").innerHTML = d.turnOrder.map((p, i) => `<div class="player-card"><div class="bg-pink-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-black text-xs">${i+1}</div><img src="${getAvatar(p)}" class="avatar !w-8 !h-8"><span class="font-black text-sm uppercase">${p}</span></div>`).join("");
             document.getElementById("host-start-trigger").classList.toggle("hidden", !isIHost);
-            document.getElementById("player-wait-msg").classList.toggle("hidden", isIHost);
           } 
           else if (d.status === "started") {
             document.getElementById("screen-game").classList.remove("hidden");
-            if (d.mode === "admin" && isIHost) { document.getElementById("admin-view").classList.remove("hidden"); document.getElementById("player-view").classList.add("hidden"); document.getElementById("admin-word-info").innerText = d.word; }
+            if (d.mode === "admin" && isIHost) { document.getElementById("admin-view").classList.remove("hidden"); document.getElementById("admin-word-info").innerText = d.word; }
             else { document.getElementById("player-view").classList.remove("hidden"); if (d.assignments && d.assignments[myName]) showRole(d.assignments[myName], d.word, d.category); }
             document.getElementById("host-game-controls").classList.toggle("hidden", !isIHost);
           } 
           else if (d.status === "voting") {
             document.getElementById("screen-voting").classList.remove("hidden");
-            const hasVoted = d.votes && d.votes[myName], allVoted = d.votes && Object.keys(d.votes).length >= pKeys.length;
-            if (!hasVoted) renderVoteList(d);
-            else document.getElementById("vote-list").innerHTML = pKeys.map(u => `<div class="player-card opacity-50"><img src="${getAvatar(u)}" class="avatar"><span class="font-black text-[10px] uppercase">${u}</span>${d.votes && d.votes[u] ? '<span class="ml-auto text-[8px] bg-green-500 px-2 rounded-full">VOTÓ</span>' : ''}</div>`).join("");
-            if (allVoted) {
-                document.getElementById("vote-results").classList.remove("hidden");
-                const res = {}; Object.values(d.votes).forEach(arr => arr.forEach(v => res[v] = (res[v] || 0) + 1));
-                document.getElementById("results-display").innerHTML = pKeys.map(p => {
-                    const c = res[p] || 0, isL = d.assignments[p] === "mentiroso";
-                    return `<div class="flex justify-between items-center ${isL ? 'bg-pink-600/20 border border-pink-600' : 'bg-white/5'} p-2 rounded-lg"><div class="flex flex-col"><span class="text-[10px] font-black uppercase">${p}</span><span class="${isL ? 'text-pink-500' : 'text-zinc-500'} text-[8px] font-bold uppercase">${isL ? 'MENTIROSO 🤫' : 'INOCENTE ✅'}</span></div><span class="text-white font-black text-xs">${c} VOTOS</span></div>`;
-                }).join("");
-                if(isIHost) document.getElementById("btn-final-reset").classList.remove("hidden");
+            const allV = d.votes && Object.keys(d.votes).length >= pKeys.length;
+            if (!(d.votes && d.votes[myName])) renderVoteList(d);
+            else document.getElementById("vote-list").innerHTML = pKeys.map(u => `<div class="player-card opacity-50"><img src="${getAvatar(u)}" class="avatar"><span class="font-black text-[10px] uppercase">${u}</span>${d.votes[u] ? '<span class="ml-auto text-[8px] bg-green-500 px-2 rounded-full text-white font-bold">VOTÓ</span>' : ''}</div>`).join("");
+            
+            if (allV && !d.animShowed) {
+                const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
+                const counts = {}; Object.values(d.votes).forEach(a => a.forEach(v => counts[v] = (counts[v] || 0) + 1));
+                const target = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
+                const isL = d.assignments[target] === "mentiroso";
+                if (isIHost) db.ref(`rooms/${currentRoom}/animShowed`).set(true);
+                const screen = document.getElementById("ejection-screen");
+                document.getElementById("ejection-avatars-flow").innerHTML = liars.map(l => `<div class="floating-avatar"><img src="${getAvatar(l)}" class="w-full h-full"></div>`).join("");
+                document.getElementById("ejection-msg").innerHTML = `LOS MENTIROSOS ERAN:<br><span class="text-pink-500">${liars.join(" & ")}</span>`;
+                screen.classList.add("active");
+                setTimeout(() => { 
+                    screen.classList.remove("active");
+                    document.getElementById("vote-results").classList.remove("hidden");
+                    document.getElementById("results-display").innerHTML = pKeys.map(p => {
+                        const isLi = d.assignments[p] === "mentiroso";
+                        return `<div class="flex justify-between items-center ${isLi ? 'bg-pink-600/20 border border-pink-600' : 'bg-white/5'} p-2 rounded-lg"><div class="flex flex-col text-left"><span class="text-[10px] font-black uppercase">${p}</span><span class="${isLi?'text-pink-500':'text-zinc-500'} text-[8px] font-bold uppercase">${isLi?'Mentiroso 🤫':'Inocente ✅'}</span></div><span class="font-black text-xs">${counts[p] || 0} VOTOS</span></div>`;
+                    }).join("");
+                    if (isIHost) {
+                        Object.entries(d.assignments).forEach(([p, role]) => {
+                            if (role === "mentiroso" && target !== p) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v||0)+3);
+                            if (role === "inocente" && isL && d.votes[p].includes(target)) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v||0)+1);
+                        });
+                        document.getElementById("btn-final-reset").classList.remove("hidden");
+                    }
+                }, 5000);
             }
           }
         });
       }
-
-      function sendIdea() { const w = document.getElementById("idea-word").value.trim().toUpperCase(), c = document.getElementById("idea-cat").value.trim().toUpperCase(); if (!w || !c) return alert("Faltan datos"); db.ref(`rooms/${currentRoom}/ideas/${myName}`).set({ w, c }); }
-      function showRole(role, word, category) { document.getElementById("role-title").innerText = role === "mentiroso" ? "MENTIROSO" : "INOCENTE"; document.getElementById("role-title").style.color = role === "mentiroso" ? "#db2777" : "#fff"; document.getElementById("word-display").innerText = role === "mentiroso" ? "???" : word; document.getElementById("hint-text").innerText = (role === "mentiroso" ? "Pista: " : "Categoría: ") + category; }
-      function resetGame() { myVotes = []; db.ref("rooms/" + currentRoom).update({ status: "waiting", assignments: null, ideas: null, turnOrder: null, votes: null }); document.getElementById("vote-results").classList.add("hidden"); }
+      function showRole(r, w, c) { document.getElementById("role-title").innerText = r === "mentiroso" ? "MENTIROSO" : "INOCENTE"; document.getElementById("role-title").style.color = r === "mentiroso" ? "#db2777" : "#fff"; document.getElementById("word-display").innerText = r === "mentiroso" ? "???" : w; document.getElementById("hint-text").innerText = (r === "mentiroso" ? "Pista: " : "Categoría: ") + c; }
+      function resetGame() { db.ref("rooms/" + currentRoom).update({ status: "waiting", assignments: null, turnOrder: null, votes: null, animShowed: false }); }
     </script>
 </body>
 </html>
