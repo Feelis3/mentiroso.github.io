@@ -227,6 +227,7 @@ const firebaseConfig = {
                 ${isIHost && u !== myName ? `<div class="kick-badge" onclick="kickPlayer('${u}')">×</div>` : ""}
                 <img src="${getAvatar(u)}" class="avatar">
                 <span class="font-black text-[10px] uppercase truncate">${u}</span>
+                <button class="status-badge ${d.assignments && d.assignments[u] ? (d.assignments[u] === "mentiroso" ? "bg-pink-600" : "bg-green-600") : "bg-zinc-600"}"></button>
             </div>
           `).join("");
 
@@ -313,7 +314,6 @@ const firebaseConfig = {
     </script>
 </body>
 </html>
-
 
 
 
