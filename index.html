@@ -25,16 +25,9 @@
         .whatsapp-btn { background: #25d366; color: white; font-weight: 800; font-size: 10px; padding: 8px 16px; border-radius: 99px; text-transform: uppercase; margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; }
         .kick-badge { position: absolute; top: -5px; right: -5px; background: #ff4444; color: white; font-size: 10px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 10; }
 
-        /* REACCIONES CORREGIDAS (FLOTANTES GLOBALES) */
         #reaction-container { position: fixed; inset: 0; pointer-events: none; z-index: 1000; }
         .reaction-pop { position: absolute; left: 50%; bottom: 20%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; animation: reactionFloat 2.5s ease-out forwards; }
-        @keyframes reactionFloat {
-            0% { transform: translate(-50%, 0); opacity: 0; scale: 0.5; }
-            15% { transform: translate(-50%, -20px); opacity: 1; scale: 1.2; }
-            80% { opacity: 1; }
-            100% { transform: translate(-50%, -100px); opacity: 0; scale: 1; }
-        }
-
+        @keyframes reactionFloat { 0% { transform: translate(-50%, 0); opacity: 0; scale: 0.5; } 15% { transform: translate(-50%, -20px); opacity: 1; scale: 1.2; } 100% { transform: translate(-50%, -100px); opacity: 0; scale: 1; } }
         #reaction-menu { position: fixed; bottom: 85px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 200; transition: 0.3s transform, 0.3s opacity; transform: scale(0); opacity: 0; transform-origin: bottom right; }
         #reaction-menu.open { transform: scale(1); opacity: 1; }
         .reaction-btn { width: 45px; height: 45px; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; }
@@ -49,9 +42,7 @@
 </head>
 <body>
     <button id="btn-logout" onclick="logout()" class="btn-back hidden">← Salir</button>
-
     <div id="reaction-container"></div>
-
     <div id="reaction-menu">
         <button onclick="sendReaction('🦐')" class="reaction-btn">🦐</button>
         <button onclick="sendReaction('🤫')" class="reaction-btn">🤫</button>
@@ -64,6 +55,7 @@
     <div id="ejection-screen">
         <div id="ejection-avatars-flow" class="w-full h-32 relative flex items-center"></div>
         <p id="ejection-msg" class="ejection-text"></p>
+        <button id="btn-local-restart" onclick="restartLocalGame()" class="btn-action !bg-white !text-black mt-8 hidden">Nueva Ronda</button>
     </div>
 
     <div class="stack-container">
@@ -72,7 +64,8 @@
         <div class="text-6xl my-4 animate-bounce text-center">🦐</div>
         <input type="text" id="username" class="custom-input" placeholder="TU NOMBRE..." />
         <div id="lobby-main" class="flex flex-col gap-3 w-full items-center">
-          <button onclick="showCreateOptions()" class="btn-action !bg-pink-600 !text-white">CREAR SALA</button>
+          <button onclick="showCreateOptions()" class="btn-action !bg-pink-600 !text-white">CREAR SALA ONLINE</button>
+          <button onclick="initLocalMode()" class="btn-action !bg-zinc-800 !text-white">PARTIDA LOCAL (1 MÓVIL)</button>
           <div class="flex gap-2 w-full max-w-[320px]">
             <input type="text" id="roomInput" class="custom-input !mb-0" placeholder="CÓDIGO" />
             <button onclick="joinRoom()" class="bg-zinc-800 px-6 rounded-xl font-black uppercase text-xs text-white">Unirse</button>
@@ -82,7 +75,40 @@
           <button onclick="finalizeCreation('admin')" class="btn-action !py-3 text-xs">Modo Admin</button>
           <button onclick="finalizeCreation('normal')" class="btn-action !py-3 text-xs">Modo Normal</button>
           <button onclick="finalizeCreation('ideas')" class="btn-action !py-3 text-xs">Modo Ideas</button>
-          <button onclick="showCreateOptions(false)" class="text-[10px] uppercase font-bold opacity-50 mt-2">Cancelar</button>
+          <button onclick="showCreateOptions(false)" class="text-[10px] uppercase font-bold opacity-50 mt-2 text-white">Cancelar</button>
+        </div>
+      </section>
+
+      <section id="screen-local-setup" class="hidden text-center">
+        <h2 class="hero-title !text-[2rem] mb-4">JUGADORES LOCALES</h2>
+        <div class="flex gap-2 w-full max-w-[320px] mb-4 mx-auto">
+            <input type="text" id="local-name-input" class="custom-input !mb-0" placeholder="Nombre..." />
+            <button onclick="addLocalPlayer()" class="bg-pink-600 px-6 rounded-xl font-black">+</button>
+        </div>
+        <div id="local-setup-list" class="grid grid-cols-2 gap-2 w-full max-w-[320px] mb-6 overflow-y-auto max-h-[30vh] mx-auto"></div>
+        <div class="w-full max-w-[320px] mx-auto">
+            <label class="text-[10px] font-black uppercase block mb-1 opacity-50 text-zinc-500">Mentirosos: <span id="local-liar-val">1</span></label>
+            <input type="range" id="local-liar-range" min="1" max="3" value="1" class="w-full mb-6" oninput="document.getElementById('local-liar-val').innerText = this.value" />
+            <button onclick="startLocalGameLogic()" class="btn-action !bg-white !text-black">EMPEZAR</button>
+        </div>
+      </section>
+
+      <section id="screen-local-pass" class="hidden">
+        <p class="text-zinc-500 font-black uppercase text-[10px] mb-2">Pasa el móvil a:</p>
+        <h2 id="pass-to-name" class="hero-title !text-[3.5rem] mb-8 text-pink-600">---</h2>
+        <button onclick="showLocalRoleUI()" class="btn-action">VER ROL</button>
+      </section>
+
+      <section id="screen-local-view" class="hidden">
+        <div class="border-2 border-white/10 p-8 text-center w-full max-w-sm rounded-[2.5rem] bg-zinc-900/50">
+            <div id="blur-local" class="blur-content">
+                <p id="local-view-user" class="text-pink-500 font-black text-xs uppercase mb-4"></p>
+                <h2 id="local-view-role" class="text-5xl font-black uppercase mb-8">...</h2>
+                <div id="local-view-word" class="font-black text-4xl text-yellow-400 mb-4 uppercase">---</div>
+                <p id="local-view-hint" class="text-zinc-400 text-xs font-bold uppercase border-t border-white/5 pt-4"></p>
+            </div>
+            <button onmousedown="toggleLocalBlur(true)" onmouseup="toggleLocalBlur(false)" ontouchstart="toggleLocalBlur(true)" ontouchend="toggleLocalBlur(false)" class="mt-8 bg-white text-black text-[11px] font-black py-5 px-10 rounded-2xl w-full uppercase">MANTÉN PARA VER</button>
+            <button onclick="finishLocalView()" class="mt-4 text-[10px] font-black uppercase opacity-50">YA LO HE VISTO</button>
         </div>
       </section>
 
@@ -92,10 +118,10 @@
           <h2 id="room-code-display" class="hero-title !text-[3.5rem] mb-2 text-white">----</h2>
           <button onclick="shareWhatsApp()" class="whatsapp-btn"><span>Compartir acceso</span></button>
           <div id="player-list" class="grid grid-cols-2 gap-2 mt-6 mb-6 max-h-[35vh] overflow-y-auto"></div>
-          <div id="host-controls" class="hidden bg-zinc-900 p-6 rounded-3xl border border-white/10 w-full max-w-[320px] mx-auto">
+          <div id="host-controls" class="hidden bg-zinc-900 p-6 rounded-3xl border border-white/10 w-full max-w-[320px] mx-auto text-center">
             <div class="mb-4">
-              <label class="text-[10px] font-black uppercase block mb-1 text-zinc-500">Mentirosos: <span id="liar-count-val" class="text-pink-500 font-bold">1</span></label>
-              <input type="range" id="liar-range" min="1" max="3" value="1" oninput="document.getElementById('liar-count-val').innerText = this.value" />
+              <label class="text-[10px] font-black uppercase block mb-1 text-zinc-500">Mentirosos: <span id="liar-count-val-online" class="text-pink-500 font-bold">1</span></label>
+              <input type="range" id="liar-range" min="1" max="3" value="1" oninput="document.getElementById('liar-count-val-online').innerText = this.value" />
             </div>
             <button onclick="startGame()" id="btn-start-game" class="btn-action !bg-white !text-black">INICIAR RONDA</button>
           </div>
@@ -105,7 +131,10 @@
       <section id="screen-game-order" class="hidden">
         <h2 class="hero-title !text-[3rem] mb-6 text-white text-center">TURNO</h2>
         <div id="turn-order-list" class="flex flex-col gap-3 w-full max-w-sm px-4"></div>
-        <button id="host-start-trigger" onclick="confirmStartGame()" class="btn-action !bg-pink-600 !text-white mt-8 hidden">VER ROLES</button>
+        <div class="mt-8 flex flex-col items-center">
+            <button id="host-start-trigger" onclick="confirmStartGame()" class="btn-action !bg-pink-600 !text-white mt-8 hidden">VER ROLES</button>
+            <button id="btn-local-reveal" onclick="revealImpostorsLocal()" class="btn-action !bg-pink-600 !text-white hidden">VER MENTIROSO</button>
+        </div>
       </section>
 
       <section id="screen-game" class="hidden">
@@ -116,9 +145,6 @@
             <p id="hint-text" class="text-zinc-400 text-xs font-bold uppercase border-t border-white/5 pt-4 text-center"></p>
           </div>
           <button onmousedown="toggleReveal(true)" onmouseup="toggleReveal(false)" ontouchstart="toggleReveal(true)" ontouchend="toggleReveal(false)" class="btn-reveal mt-8 bg-white text-black text-[11px] font-black py-5 px-10 rounded-2xl w-full uppercase">MANTÉN PARA VER</button>
-        </div>
-        <div id="admin-view" class="hidden text-center bg-zinc-900 p-8 rounded-[2.5rem] border border-white/10">
-            <p id="admin-word-info" class="text-4xl font-black text-white uppercase text-center"></p>
         </div>
         <div id="host-game-controls" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-[320px] z-[100]"><button onclick="openVoting()" class="btn-action !bg-pink-600 !text-white shadow-2xl">ABRIR VOTACIÓN</button></div>
       </section>
@@ -135,6 +161,7 @@
 
     <script>
       var currentRoom = null, myName = "", db = null, myVotes = [], animShowed = false;
+      var playersLocal = [], localAssignments = {}, localWord = "", localCat = "", localIdx = 0;
 
       const firebaseConfig = {
         apiKey: "AIzaSyCRoM4Fuz5eGGnXSwNYRn-nf8oII_ulLuQ",
@@ -148,12 +175,83 @@
 
       firebase.initializeApp(firebaseConfig); db = firebase.database();
 
+      function shuffleArray(array) {
+          for (let i = array.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [array[i], array[j]] = [array[j], array[i]];
+          }
+          return array;
+      }
+
+      const getAvatar = (n) => `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(n)}`;
+
+      // --- LOCAL ---
+      function initLocalMode() {
+          document.getElementById("screen-lobby").classList.add("hidden");
+          document.getElementById("screen-local-setup").classList.remove("hidden");
+          document.getElementById("btn-logout").classList.remove("hidden");
+      }
+      function addLocalPlayer() {
+          const input = document.getElementById("local-name-input");
+          const n = input.value.trim().toUpperCase();
+          if(n && !playersLocal.includes(n)) { playersLocal.push(n); input.value = ""; renderLocalSetup(); }
+      }
+      function renderLocalSetup() {
+          document.getElementById("local-setup-list").innerHTML = playersLocal.map(p => `<div class="player-card"><span>${p}</span><button onclick="playersLocal=playersLocal.filter(x=>x!=='${p}');renderLocalSetup()" class="ml-auto text-red-500 font-black">×</button></div>`).join("");
+      }
+      function startLocalGameLogic() {
+          const num = parseInt(document.getElementById("local-liar-range").value);
+          if(playersLocal.length < num+1) return alert("Pocos jugadores");
+          const item = dictionary[Math.floor(Math.random()*dictionary.length)];
+          localWord = item.w; localCat = item.c;
+          let pool = shuffleArray([...playersLocal]);
+          localAssignments = {};
+          pool.forEach((p, i) => localAssignments[p] = i < num ? "mentiroso" : "inocente");
+          localIdx = 0; showLocalPassScreen();
+      }
+      function showLocalPassScreen() {
+          if(localIdx >= playersLocal.length) {
+              document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
+              document.getElementById("screen-game-order").classList.remove("hidden");
+              let turns = shuffleArray([...playersLocal]);
+              document.getElementById("turn-order-list").innerHTML = turns.map((p, i) => `<div class="player-card"><div class="bg-pink-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-black text-xs">${i+1}</div><span>${p}</span></div>`).join("");
+              document.getElementById("btn-local-reveal").classList.remove("hidden");
+              return;
+          }
+          document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
+          document.getElementById("screen-local-pass").classList.remove("hidden");
+          document.getElementById("pass-to-name").innerText = playersLocal[localIdx];
+      }
+      function showLocalRoleUI() {
+          const p = playersLocal[localIdx];
+          document.getElementById("screen-local-pass").classList.add("hidden");
+          document.getElementById("screen-local-view").classList.remove("hidden");
+          document.getElementById("local-view-user").innerText = p;
+          document.getElementById("local-view-role").innerText = localAssignments[p].toUpperCase();
+          document.getElementById("local-view-role").style.color = localAssignments[p] === "mentiroso" ? "#db2777" : "#fff";
+          document.getElementById("local-view-word").innerText = localAssignments[p] === "mentiroso" ? "???" : localWord;
+          document.getElementById("local-view-hint").innerText = "CATEGORÍA: " + localCat;
+      }
+      function toggleLocalBlur(s) { document.getElementById("blur-local").className = s ? "show-content" : "blur-content"; }
+      function finishLocalView() { localIdx++; showLocalPassScreen(); }
+      function revealImpostorsLocal() {
+          const liars = Object.keys(localAssignments).filter(p => localAssignments[p] === "mentiroso");
+          const screen = document.getElementById("ejection-screen");
+          document.getElementById("ejection-avatars-flow").innerHTML = liars.map(l => `<div class="floating-avatar"><img src="${getAvatar(l)}" class="w-full h-full"></div>`).join("");
+          document.getElementById("ejection-msg").innerHTML = `LOS MENTIROSOS ERAN:<br><span class="text-pink-500">${liars.join(" & ")}</span>`;
+          screen.classList.add("active");
+          document.getElementById("btn-local-restart").classList.remove("hidden");
+      }
+      function restartLocalGame() {
+          document.getElementById("ejection-screen").classList.remove("active");
+          document.getElementById("btn-local-restart").classList.add("hidden");
+          document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
+          document.getElementById("screen-local-setup").classList.remove("hidden");
+      }
+
+      // --- ONLINE ---
       window.onload = () => {
         const sR = localStorage.getItem("mentiroso_room"), sN = localStorage.getItem("mentiroso_name");
-        //Poner solo el código de la sala en el input para unirse
-          const urlParams = new URLSearchParams(window.location.search);
-          const joinCode = urlParams.get('join');
-          if (joinCode) document.getElementById("roomInput").value = joinCode.toUpperCase();
         if (sR && sN) {
             db.ref("rooms/" + sR).once("value", s => {
                 if (s.exists()) { myName = sN; currentRoom = sR; listenToRoom(sR); db.ref(`rooms/${sR}/players/${sN}`).set(true); }
@@ -162,14 +260,12 @@
         } else document.getElementById("screen-lobby").classList.remove("hidden");
       };
 
-      function logout() { localStorage.clear(); location.href = window.location.origin + window.location.pathname; }
+      function logout() { localStorage.clear(); location.reload(); }
       function showCreateOptions(s=true) { document.getElementById("lobby-main").classList.toggle("hidden",s); document.getElementById("create-options").classList.toggle("hidden",!s); }
       function toggleReveal(s) { document.getElementById("blur-wrapper").className = s ? "show-content" : "blur-content"; }
-      const getAvatar = (n) => `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(n)}`;
       function kickPlayer(p) { if(confirm(`¿Expulsar a ${p}?`)) db.ref(`rooms/${currentRoom}/players/${p}`).set("KICKED"); }
       function shareWhatsApp() { const link = `https://feelis3.github.io/mentiroso.github.io/?join=${currentRoom}`; window.open(`https://wa.me/?text=${encodeURIComponent("¡Únete! 🤫 " + link)}`, "_blank"); }
 
-      // REACCIONES
       function sendReaction(emoji) {
           if(!currentRoom) return;
           db.ref(`rooms/${currentRoom}/lastReaction`).set({ user: myName, emoji: emoji, time: Date.now() });
@@ -200,55 +296,43 @@
         const num = parseInt(document.getElementById("liar-range").value);
         db.ref("rooms/"+currentRoom).once("value", s => {
           const players = Object.keys(s.val().players || {}).filter(k => s.val().players[k] !== "KICKED");
-          if(players.length < num+1) return alert("Pocos jugadores");
-          db.ref("rooms/"+currentRoom).update({ status: "showing_order", turnOrder: players.sort(()=>0.5-Math.random()), animShowed: false });
+          db.ref("rooms/"+currentRoom).update({ status: "showing_order", turnOrder: shuffleArray([...players]), animShowed: false });
         });
       }
 
-     const dictionary = [
+    const dictionary = [
         { w: "LEÓN", c: "ANIMALES" }, { w: "TIGRE", c: "ANIMALES" }, { w: "ELEFANTE", c: "ANIMALES" }, { w: "CEBRA", c: "ANIMALES" }, { w: "GIRAFA", c: "ANIMALES" }, { w: "DELFÍN", c: "ANIMALES" }, { w: "TIBURÓN", c: "ANIMALES" }, { w: "ÁGUILA", c: "ANIMALES" }, { w: "PINGÜINO", c: "ANIMALES" }, { w: "CANGURO", c: "ANIMALES" }, { w: "PANDA", c: "ANIMALES" }, { w: "LOBO", c: "ANIMALES" }, { w: "ZORRO", c: "ANIMALES" }, { w: "MONO", c: "ANIMALES" }, { w: "CABALLO", c: "ANIMALES" }, { w: "VACA", c: "ANIMALES" }, { w: "CERDO", c: "ANIMALES" }, { w: "OVEJA", c: "ANIMALES" }, { w: "GALLINA", c: "ANIMALES" }, { w: "PATO", c: "ANIMALES" }, { w: "CISNE", c: "ANIMALES" }, { w: "LORO", c: "ANIMALES" }, { w: "BÚHO", c: "ANIMALES" }, { w: "MURCIÉLAGO", c: "ANIMALES" }, { w: "RANA", c: "ANIMALES" }, { w: "COCODRILO", c: "ANIMALES" }, { w: "TORTUGA", c: "ANIMALES" }, { w: "SERPIENTE", c: "ANIMALES" }, { w: "BALLENA", c: "ANIMALES" }, { w: "PULPO", c: "ANIMALES" }, { w: "MEDUSA", c: "ANIMALES" }, { w: "ESTRELLA DE MAR", c: "ANIMALES" }, { w: "HORMIGA", c: "ANIMALES" }, { w: "ABEJA", c: "ANIMALES" }, { w: "MARIPOSA", c: "ANIMALES" }, { w: "ARAÑA", c: "ANIMALES" }, { w: "ESCORPIÓN", c: "ANIMALES" }, { w: "CAMELLO", c: "ANIMALES" }, { w: "HIPOPÓTAMO", c: "ANIMALES" }, { w: "RINOCERONTE", c: "ANIMALES" }, { w: "PIZZA", c: "COMIDA" }, { w: "HAMBURGUESA", c: "COMIDA" }, { w: "SUSHI", c: "COMIDA" }, { w: "PASTA", c: "COMIDA" }, { w: "ENSALADA", c: "COMIDA" }, { w: "PAELLA", c: "COMIDA" }, { w: "TACO", c: "COMIDA" }, { w: "BURRITO", c: "COMIDA" }, { w: "LASAÑA", c: "COMIDA" }, { w: "SOPA", c: "COMIDA" }, { w: "FILETE", c: "COMIDA" }, { w: "POLLO ASADO", c: "COMIDA" }, { w: "PESCADO", c: "COMIDA" }, { w: "MARISCO", c: "COMIDA" }, { w: "TORTILLA", c: "COMIDA" }, { w: "CROQUETAS", c: "COMIDA" }, { w: "JAMÓN", c: "COMIDA" }, { w: "QUESO", c: "COMIDA" }, { w: "PAN", c: "COMIDA" }, { w: "ARROZ", c: "COMIDA" }, { w: "MANZANA", c: "COMIDA" }, { w: "PLÁTANO", c: "COMIDA" }, { w: "FRESA", c: "COMIDA" }, { w: "NARANJA", c: "COMIDA" }, { w: "UVA", c: "COMIDA" }, { w: "SANDÍA", c: "COMIDA" }, { w: "PIÑA", c: "COMIDA" }, { w: "KIWI", c: "COMIDA" }, { w: "TOMATE", c: "COMIDA" }, { w: "LECHUGA", c: "COMIDA" }, { w: "ZANAHORIA", c: "COMIDA" }, { w: "PATATA", c: "COMIDA" }, { w: "CEBOLLA", c: "COMIDA" }, { w: "AJO", c: "COMIDA" }, { w: "CHOCOLATE", c: "COMIDA" }, { w: "HELADO", c: "COMIDA" }, { w: "TARTA", c: "COMIDA" }, { w: "GALLETA", c: "COMIDA" }, { w: "DONUT", c: "COMIDA" }, { w: "CAFÉ", c: "COMIDA" }, { w: "TÉ", c: "COMIDA" }, { w: "CERVEZA", c: "COMIDA" }, { w: "VINO", c: "COMIDA" }, { w: "REFRESCO", c: "COMIDA" }, { w: "ZUMO", c: "COMIDA" }, { w: "AGUA", c: "COMIDA" }, { w: "MESA", c: "HOGAR" }, { w: "SILLA", c: "HOGAR" }, { w: "SOFÁ", c: "HOGAR" }, { w: "CAMA", c: "HOGAR" }, { w: "ARMARIO", c: "HOGAR" }, { w: "ESTANTERÍA", c: "HOGAR" }, { w: "LÁMPARA", c: "HOGAR" }, { w: "ESPEJO", c: "HOGAR" }, { w: "CUADRO", c: "HOGAR" }, { w: "RELOJ", c: "HOGAR" }, { w: "TELEVISOR", c: "HOGAR" }, { w: "ORDENADOR", c: "HOGAR" }, { w: "TELÉFONO", c: "HOGAR" }, { w: "NEVERA", c: "HOGAR" }, { w: "LAVADORA", c: "HOGAR" }, { w: "MICROONDAS", c: "HOGAR" }, { w: "HORNO", c: "HOGAR" }, { w: "BATIDORA", c: "HOGAR" }, { w: "CAFETERA", c: "HOGAR" }, { w: "PLATO", c: "HOGAR" }, { w: "VASO", c: "HOGAR" }, { w: "TAZA", c: "HOGAR" }, { w: "TENEDOR", c: "HOGAR" }, { w: "CUCHILLO", c: "HOGAR" }, { w: "CUCHARA", c: "HOGAR" }, { w: "SARTÉN", c: "HOGAR" }, { w: "OLLA", c: "HOGAR" }, { w: "TOALLA", c: "HOGAR" }, { w: "SÁBANA", c: "HOGAR" }, { w: "ALMOHADA", c: "HOGAR" }, { w: "CORTINA", c: "HOGAR" }, { w: "ALFOMBRA", c: "HOGAR" }, { w: "PUERTA", c: "HOGAR" }, { w: "VENTANA", c: "HOGAR" }, { w: "LLAVE", c: "HOGAR" }, { w: "MARTILLO", c: "HOGAR" }, { w: "DESTORNILLADOR", c: "HOGAR" }, { w: "ESCOBA", c: "HOGAR" }, { w: "CUBO", c: "HOGAR" }, { w: "PLANCHA", c: "HOGAR" }, { w: "FÚTBOL", c: "DEPORTES" }, { w: "BALONCESTO", c: "DEPORTES" }, { w: "TENIS", c: "DEPORTES" }, { w: "NATACIÓN", c: "DEPORTES" }, { w: "CICLISMO", c: "DEPORTES" }, { w: "ATLETISMO", c: "DEPORTES" }, { w: "BOXEO", c: "DEPORTES" }, { w: "GOLF", c: "DEPORTES" }, { w: "VOLEIBOL", c: "DEPORTES" }, { w: "RUGBY", c: "DEPORTES" }, { w: "BÉISBOL", c: "DEPORTES" }, { w: "ESQUÍ", c: "DEPORTES" }, { w: "SURF", c: "DEPORTES" }, { w: "SKATE", c: "DEPORTES" }, { w: "KARATE", c: "DEPORTES" }, { w: "YOGA", c: "DEPORTES" }, { w: "AJEDREZ", c: "DEPORTES" }, { w: "BILLAR", c: "DEPORTES" }, { w: "DARDOS", c: "DEPORTES" }, { w: "VIDEOJUEGOS", c: "OCIO" }, { w: "CINE", c: "OCIO" }, { w: "TEATRO", c: "OCIO" }, { w: "MÚSICA", c: "OCIO" }, { w: "LECTURA", c: "OCIO" }, { w: "PINTURA", c: "OCIO" }, { w: "BAILE", c: "OCIO" }, { w: "FOTOGRAFÍA", c: "OCIO" }, { w: "VIAJAR", c: "OCIO" }, { w: "CAMPING", c: "OCIO" }, { w: "SENDERISMO", c: "OCIO" }, { w: "PESCA", c: "OCIO" }, { w: "NAVEGACIÓN", c: "OCIO" }, { w: "MÉDICO", c: "PROFESIONES" }, { w: "ENFERMERO", c: "PROFESIONES" }, { w: "DENTISTA", c: "PROFESIONES" }, { w: "PROFESOR", c: "PROFESIONES" }, { w: "CIENTÍFICO", c: "PROFESIONES" }, { w: "INGENIERO", c: "PROFESIONES" }, { w: "ARQUITECTO", c: "PROFESIONES" }, { w: "ABOGADO", c: "PROFESIONES" }, { w: "POLICÍA", c: "PROFESIONES" }, { w: "BOMBERO", c: "PROFESIONES" }, { w: "PILOTO", c: "PROFESIONES" }, { w: "ASTRONAUTA", c: "PROFESIONES" }, { w: "COCINERO", c: "PROFESIONES" }, { w: "CAMARERO", c: "PROFESIONES" }, { w: "ARTISTA", c: "PROFESIONES" }, { w: "MÚSICO", c: "PROFESIONES" }, { w: "ACTOR", c: "PROFESIONES" }, { w: "ESCRITOR", c: "PROFESIONES" }, { w: "PERIODISTA", c: "PROFESIONES" }, { w: "FOTÓGRAFO", c: "PROFESIONES" }, { w: "DISEÑADOR", c: "PROFESIONES" }, { w: "PROGRAMADOR", c: "PROFESIONES" }, { w: "MECÁNICO", c: "PROFESIONES" }, { w: "ELECTRICISTA", c: "PROFESIONES" }, { w: "FONTANERO", c: "PROFESIONES" }, { w: "CARPINTERO", c: "PROFESIONES" }, { w: "ALBAÑIL", c: "PROFESIONES" }, { w: "GRANJERO", c: "PROFESIONES" }, { w: "VETERINARIO", c: "PROFESIONES" }, { w: "PELUQUERO", c: "PROFESIONES" }, { w: "PLAYA", c: "LUGARES" }, { w: "MONTAÑA", c: "LUGARES" }, { w: "BOSQUE", c: "LUGARES" }, { w: "DESIERTO", c: "LUGARES" }, { w: "SELVA", c: "LUGARES" }, { w: "RÍO", c: "LUGARES" }, { w: "LAGO", c: "LUGARES" }, { w: "OCÉANO", c: "LUGARES" }, { w: "ISLA", c: "LUGARES" }, { w: "VOLCÁN", c: "LUGARES" }, { w: "CIUDAD", c: "LUGARES" }, { w: "PUEBLO", c: "LUGARES" }, { w: "PARQUE", c: "LUGARES" }, { w: "ZOO", c: "LUGARES" }, { w: "MUSEO", c: "LUGARES" }, { w: "BIBLIOTECA", c: "LUGARES" }, { w: "ESCUELA", c: "LUGARES" }, { w: "UNIVERSIDAD", c: "LUGARES" }, { w: "HOSPITAL", c: "LUGARES" }, { w: "FARMACIA", c: "LUGARES" }, { w: "SUPERMERCADO", c: "LUGARES" }, { w: "RESTAURANTE", c: "LUGARES" }, { w: "HOTEL", c: "LUGARES" }, { w: "AEROPUERTO", c: "LUGARES" }, { w: "ESTACIÓN", c: "LUGARES" }, { w: "CASTILLO", c: "LUGARES" }, { w: "IGLESIA", c: "LUGARES" }, { w: "PUENTE", c: "LUGARES" }, { w: "RASCACIELOS", c: "LUGARES" }, { w: "CUEVA", c: "LUGARES" }, { w: "COCHE", c: "TRANSPORTE" }, { w: "AUTOBÚS", c: "TRANSPORTE" }, { w: "TREN", c: "TRANSPORTE" }, { w: "METRO", c: "TRANSPORTE" }, { w: "TAXI", c: "TRANSPORTE" }, { w: "MOTO", c: "TRANSPORTE" }, { w: "BICICLETA", c: "TRANSPORTE" }, { w: "PATINETE", c: "TRANSPORTE" }, { w: "CAMIÓN", c: "TRANSPORTE" }, { w: "FURGONETA", c: "TRANSPORTE" }, { w: "BARCO", c: "TRANSPORTE" }, { w: "SUBMARINO", c: "TRANSPORTE" }, { w: "HELICÓPTERO", c: "TRANSPORTE" }, { w: "COHETE", c: "TRANSPORTE" }, { w: "GLOBO", c: "TRANSPORTE" }, { w: "CAMISETA", c: "ROPA" }, { w: "PANTALÓN", c: "ROPA" }, { w: "VESTIDO", c: "ROPA" }, { w: "FALDA", c: "ROPA" }, { w: "CHAQUETA", c: "ROPA" }, { w: "ABRIGO", c: "ROPA" }, { w: "JERSEY", c: "ROPA" }, { w: "ZAPATOS", c: "ROPA" }, { w: "ZAPATILLAS", c: "ROPA" }, { w: "BOTAS", c: "ROPA" }, { w: "SOMBRERO", c: "ROPA" }, { w: "GORRA", c: "ROPA" }, { w: "GUANTES", c: "ROPA" }, { w: "BUFANDA", c: "ROPA" }, { w: "CINTURÓN", c: "ROPA" }, { w: "GAFAS", c: "ACCESORIOS" }, { w: "RELOJ DE PULSERA", c: "ACCESORIOS" }, { w: "ANILLO", c: "ACCESORIOS" }, { w: "COLLAR", c: "ACCESORIOS" }, { w: "PENDIENTES", c: "ACCESORIOS" }, { w: "BOLSO", c: "ACCESORIOS" }, { w: "MOCHILA", c: "ACCESORIOS" }, { w: "PARAGUAS", c: "ACCESORIOS" }, { w: "ÁATOMO", c: "CIENCIA" }, { w: "CÉLULA", c: "CIENCIA" }, { w: "PLANETA", c: "CIENCIA" }, { w: "ESTRELLA", c: "CIENCIA" }, { w: "GALAXIA", c: "CIENCIA" }, { w: "GRAVEDAD", c: "CIENCIA" }, { w: "ENERGÍA", c: "CIENCIA" }, { w: "ROBOT", c: "TECNOLOGÍA" }, { w: "INTERNET", c: "TECNOLOGÍA" }, { w: "SOFTWARE", c: "TECNOLOGÍA" }, { w: "BATERÍA", c: "TECNOLOGÍA" }, { w: "CÁMARA", c: "TECNOLOGÍA" }, { w: "ALTAVOZ", c: "TECNOLOGÍA" }, { w: "PANTALLA", c: "TECNOLOGÍA" }, { w: "TECLADO", c: "TECNOLOGÍA" }, { w: "RATÓN", c: "TECNOLOGÍA" }, { w: "SATÉLITE", c: "TECNOLOGÍA" }, { w: "DRON", c: "TECNOLOGÍA" }, { w: "GUITARRA", c: "MÚSICA" }, { w: "PIANO", c: "MÚSICA" }, { w: "VIOLÍN", c: "MÚSICA" }, { w: "BATERÍA MÚSICAL", c: "MÚSICA" }, { w: "FLAUTA", c: "MÚSICA" }, { w: "TROMPETA", c: "MÚSICA" }, { w: "ACORDEÓN", c: "MÚSICA" }, { w: "HARPA", c: "MÚSICA" }, { w: "PIRÁMIDE", c: "HISTORIA" }, { w: "MOMIA", c: "HISTORIA" }, { w: "CABALLERO", c: "HISTORIA" }, { w: "VIKINGO", c: "HISTORIA" }, { w: "PIRATA", c: "HISTORIA" }, { w: "DINOSAURIO", c: "HISTORIA" }, { w: "FÓSIL", c: "HISTORIA" }, { w: "BRÚJULA", c: "HISTORIA" }, { w: "MAPA", c: "HISTORIA" }, { w: "ESTATUA", c: "ARTE" }, { w: "PINCEL", c: "ARTE" }, { w: "LIENZO", c: "ARTE" }, { w: "ESCULTURA", c: "ARTE" }, { w: "POESÍA", c: "ARTE" }, { w: "CÓMIC", c: "ARTE" }, { w: "MANGA", c: "ARTE" }, { w: "DIBUJO ANIMADO", c: "ARTE" }, { w: "FUEGO", c: "ELEMENTOS" }, { w: "HIELO", c: "ELEMENTOS" }, { w: "RAYO", c: "ELEMENTOS" }, { w: "VIENTO", c: "ELEMENTOS" }, { w: "TERREMOTO", c: "ELEMENTOS" }, { w: "LLUVIA", c: "ELEMENTOS" }, { w: "NIEVE", c: "ELEMENTOS" }, { w: "NIEBLA", c: "ELEMENTOS" }, { w: "ARCOIRIS", c: "ELEMENTOS" }, { w: "ECLIPSE", c: "ELEMENTOS" }
       ];
       function confirmStartGame() {
         db.ref("rooms/"+currentRoom).once("value", s => {
           const d = s.val(), num = parseInt(document.getElementById("liar-range").value);
           let item = dictionary[Math.floor(Math.random()*dictionary.length)];
-          let assigns = {}; d.turnOrder.forEach((p, i) => assigns[p] = i < num ? "mentiroso" : "inocente");
-          db.ref("rooms/"+currentRoom).update({ status: "started", word: item.w, category: item.c, assignments: assigns, votes: null });
+          let assigns = {}; 
+          let shuffled = shuffleArray([...d.turnOrder]);
+          shuffled.forEach((p, i) => assigns[p] = i < num ? "mentiroso" : "inocente");
+          db.ref("rooms/"+currentRoom).update({ status: "started", word: item.w, category: item.c, assignments: assigns, votes: null, animShowed: false });
         });
       }
 
-      function openVoting() { db.ref(`rooms/${currentRoom}`).update({ status: "voting", votes: {} }); }
+      function openVoting() { db.ref(`rooms/${currentRoom}`).update({ status: "voting", votes: null }); }
       function castVote(target) {
         db.ref(`rooms/${currentRoom}`).once('value', s => {
             const d = s.val(), max = Object.values(d.assignments).filter(r => r === "mentiroso").length;
-            if(myVotes.includes(target)) myVotes = myVotes.filter(v => v !== target);
-            else if(myVotes.length < max) myVotes.push(target);
-            if(myVotes.length === max) { db.ref(`rooms/${currentRoom}/votes/${myName}`).set(myVotes); myVotes = []; }
-            else renderVoteList(d);
+            if(!window.tmpV) window.tmpV = [];
+            if(window.tmpV.includes(target)) window.tmpV = window.tmpV.filter(v => v !== target);
+            else if(window.tmpV.length < max) window.tmpV.push(target);
+            if(window.tmpV.length === max) { db.ref(`rooms/${currentRoom}/votes/${myName}`).set(window.tmpV); window.tmpV = []; }
         });
-      }
-
-      function renderVoteList(d) {
-        const pKeys = Object.keys(d.players).filter(k => d.players[k] !== "KICKED");
-        document.getElementById("vote-list").innerHTML = pKeys.map(u => {
-            const sel = myVotes.includes(u);
-            return `<button onclick="castVote('${u}')" class="player-card w-full ${sel ? 'border-pink-600 bg-pink-600/20' : ''}"><img src="${getAvatar(u)}" class="avatar"><span class="font-black text-xs uppercase">${u}</span>${sel ? '<span class="ml-auto text-[8px] bg-pink-600 px-2 rounded-full">OK</span>' : ''}</button>`;
-        }).join("");
       }
 
       function listenToRoom(code) {
         db.ref(`rooms/${code}/players/${myName}`).onDisconnect().remove();
-
-        // OBSERVADOR DE REACCIONES (CORREGIDO PARA QUE SE VEA SIEMPRE)
         db.ref(`rooms/${code}/lastReaction`).on("value", s => {
-            const val = s.val();
-            if(!val || Date.now() - val.time > 2000) return;
+            const val = s.val(); if(!val || Date.now() - val.time > 2000) return;
             const container = document.getElementById("reaction-container");
-            const pop = document.createElement("div");
-            pop.className = "reaction-pop";
-            pop.innerHTML = `<span style="font-size:50px">${val.emoji}</span><span style="font-size:10px; font-weight:900; background:rgba(0,0,0,0.5); padding:2px 8px; border-radius:10px; border:1px solid rgba(255,255,255,0.2)">${val.user}</span>`;
-            container.appendChild(pop);
-            setTimeout(() => pop.remove(), 2500);
+            const pop = document.createElement("div"); pop.className = "reaction-pop";
+            pop.innerHTML = `<span style="font-size:50px">${val.emoji}</span><span style="font-size:10px; font-weight:900; background:rgba(0,0,0,0.5); padding:2px 8px; border-radius:10px;">${val.user}</span>`;
+            container.appendChild(pop); setTimeout(() => pop.remove(), 2500);
         });
 
         db.ref("rooms/" + code).on("value", s => {
@@ -259,10 +343,11 @@
           
           document.getElementById("btn-logout").classList.remove("hidden");
           document.getElementById("trigger-reaction").classList.remove("hidden");
-          ["screen-lobby", "screen-room", "screen-game-order", "screen-game", "screen-voting"].forEach(id => document.getElementById(id).classList.add("hidden"));
+          ["screen-lobby", "screen-room", "screen-game-order", "screen-game", "screen-voting", "screen-local-setup", "screen-local-pass", "screen-local-view"].forEach(id => document.getElementById(id).classList.add("hidden"));
 
           if (d.status === "waiting") {
             document.getElementById("screen-room").classList.remove("hidden");
+            document.getElementById("vote-results").classList.add("hidden");
             document.getElementById("room-code-display").innerText = code;
             document.getElementById("mode-tag").innerText = "MODO: " + d.mode.toUpperCase();
             document.getElementById("player-list").innerHTML = pKeys.map(u => `<div class="player-card">${isIHost && u !== myName ? `<div class="kick-badge" onclick="kickPlayer('${u}')">×</div>` : ""}<img src="${getAvatar(u)}" class="avatar"><div class="flex flex-col text-left leading-none"><span class="font-black text-[11px] uppercase">${u}</span><span class="text-pink-500 font-black text-[9px] mt-1">${d.points ? (d.points[u] || 0) : 0} PTS</span></div></div>`).join("");
@@ -270,26 +355,34 @@
           } 
           else if (d.status === "showing_order") {
             document.getElementById("screen-game-order").classList.remove("hidden");
-            document.getElementById("turn-order-list").innerHTML = d.turnOrder.map((p, i) => `<div class="player-card"><div class="bg-pink-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-black text-xs">${i+1}</div><img src="${getAvatar(p)}" class="avatar !w-8 !h-8"><span class="font-black text-sm uppercase">${p}</span></div>`).join("");
-            document.getElementById("host-start-trigger").classList.toggle("hidden", !isIHost);
+            document.getElementById("turn-order-list").innerHTML = d.turnOrder.map((p, i) => `<div class="player-card"><div class="bg-pink-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-black text-xs">${i+1}</div><img src="${getAvatar(p)}" class="avatar !w-8 !h-8"><span>${p}</span></div>`).join("");
+            if(isIHost) document.getElementById("host-start-trigger").classList.remove("hidden");
           } 
           else if (d.status === "started") {
             document.getElementById("screen-game").classList.remove("hidden");
-            if (d.mode === "admin" && isIHost) { document.getElementById("admin-view").classList.remove("hidden"); document.getElementById("admin-word-info").innerText = d.word; }
-            else { document.getElementById("player-view").classList.remove("hidden"); if (d.assignments && d.assignments[myName]) showRole(d.assignments[myName], d.word, d.category); }
+            if (d.assignments && d.assignments[myName]) showRole(d.assignments[myName], d.word, d.category);
             document.getElementById("host-game-controls").classList.toggle("hidden", !isIHost);
           } 
           else if (d.status === "voting") {
             document.getElementById("screen-voting").classList.remove("hidden");
             const allV = d.votes && Object.keys(d.votes).length >= pKeys.length;
-            if (!(d.votes && d.votes[myName])) renderVoteList(d);
-            else document.getElementById("vote-list").innerHTML = pKeys.map(u => `<div class="player-card opacity-50"><img src="${getAvatar(u)}" class="avatar"><span class="font-black text-[10px] uppercase text-white">${u}</span>${d.votes[u] ? '<span class="ml-auto text-[8px] bg-green-500 px-2 rounded-full text-white font-bold">VOTÓ</span>' : ''}</div>`).join("");
-            
+            if (!(d.votes && d.votes[myName])) {
+                document.getElementById("vote-list").innerHTML = pKeys.map(u => `<button onclick="castVote('${u}')" class="player-card w-full uppercase font-black font-xs"><img src="${getAvatar(u)}" class="avatar"><span>${u}</span></button>`).join("");
+            } else {
+                document.getElementById("vote-list").innerHTML = pKeys.map(u => `<div class="player-card opacity-50"><img src="${getAvatar(u)}" class="avatar"><span class="font-black uppercase text-xs">${u}</span>${d.votes[u] ? '<span class="ml-auto text-green-500 font-bold">VOTÓ</span>' : ''}</div>`).join("");
+            }
             if (allV && !d.animShowed) {
                 const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
                 const counts = {}; Object.values(d.votes).forEach(a => a.forEach(v => counts[v] = (counts[v] || 0) + 1));
                 const target = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
-                if (isIHost) db.ref(`rooms/${currentRoom}/animShowed`).set(true);
+                const targetIsLiar = d.assignments[target] === "mentiroso";
+                if (isIHost) {
+                    db.ref(`rooms/${currentRoom}/animShowed`).set(true);
+                    Object.entries(d.assignments).forEach(([p, role]) => {
+                        if (role === "mentiroso" && target !== p) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v||0)+3);
+                        if (role === "inocente" && targetIsLiar && d.votes[p].includes(target)) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v||0)+1);
+                    });
+                }
                 const screen = document.getElementById("ejection-screen");
                 document.getElementById("ejection-avatars-flow").innerHTML = liars.map(l => `<div class="floating-avatar"><img src="${getAvatar(l)}" class="w-full h-full"></div>`).join("");
                 document.getElementById("ejection-msg").innerHTML = `LOS MENTIROSOS ERAN:<br><span class="text-pink-500">${liars.join(" & ")}</span>`;
@@ -299,22 +392,16 @@
                     document.getElementById("vote-results").classList.remove("hidden");
                     document.getElementById("results-display").innerHTML = pKeys.map(p => {
                         const isLi = d.assignments[p] === "mentiroso";
-                        return `<div class="flex justify-between items-center ${isLi ? 'bg-pink-600/20 border border-pink-600' : 'bg-white/5'} p-2 rounded-lg"><div class="flex flex-col text-left"><span class="text-[10px] font-black uppercase text-white">${p}</span><span class="${isLi?'text-pink-500':'text-zinc-500'} text-[8px] font-bold uppercase">${isLi?'Mentiroso 🤫':'Inocente ✅'}</span></div><span class="font-black text-xs text-white">${counts[p] || 0} VOTOS</span></div>`;
+                        return `<div class="flex justify-between items-center ${isLi ? 'bg-pink-600/20 border border-pink-600' : 'bg-white/5'} p-2 rounded-lg text-left text-white"><div class="flex flex-col"><span class="text-[10px] font-black uppercase">${p}</span><span class="${isLi?'text-pink-500':'text-zinc-500'} text-[8px] font-bold uppercase">${isLi?'Mentiroso':'Inocente'}</span></div><span class="font-black text-xs">${counts[p] || 0} VOTOS</span></div>`;
                     }).join("");
-                    if (isIHost) {
-                        Object.entries(d.assignments).forEach(([p, role]) => {
-                            if (role === "mentiroso" && target !== p) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v||0)+3);
-                            if (role === "inocente" && d.assignments[target]==="mentiroso" && d.votes[p].includes(target)) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v||0)+1);
-                        });
-                        document.getElementById("btn-final-reset").classList.remove("hidden");
-                    }
+                    if (isIHost) document.getElementById("btn-final-reset").classList.remove("hidden");
                 }, 5000);
             }
           }
         });
       }
       function showRole(r, w, c) { document.getElementById("role-title").innerText = r === "mentiroso" ? "MENTIROSO" : "INOCENTE"; document.getElementById("role-title").style.color = r === "mentiroso" ? "#db2777" : "#fff"; document.getElementById("word-display").innerText = r === "mentiroso" ? "???" : w; document.getElementById("hint-text").innerText = (r === "mentiroso" ? "Pista: " : "Categoría: ") + c; }
-      function resetGame() { db.ref("rooms/" + currentRoom).update({ status: "waiting", assignments: null, turnOrder: null, votes: null, animShowed: false, lastReaction: null }); }
+      function resetGame() { db.ref("rooms/" + currentRoom).update({ status: "waiting", assignments: null, turnOrder: null, votes: null, animShowed: false }); }
     </script>
 </body>
 </html>
