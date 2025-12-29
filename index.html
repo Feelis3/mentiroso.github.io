@@ -58,7 +58,6 @@
     
     <div id="btn-random-avatar" class="hidden" onclick="randomizeAvatarInRoom()">🎲</div>
     <div id="trigger-reaction" class="hidden" onclick="document.getElementById('reaction-menu').classList.toggle('open')">💬</div>
-    
     <div id="reaction-container"></div>
     <div id="reaction-menu">
       <button onclick="sendReaction('🦐')" class="reaction-btn">🦐</button>
@@ -74,7 +73,7 @@
     </div>
 
     <div id="tie-screen">
-        <div class="text-6xl animate-bounce mb-4">⚖️</div>
+        <div id="tie-icon" class="text-6xl animate-bounce mb-4">⚖️</div>
         <p class="hero-title !text-[2.5rem]">EMPATE</p>
         <p id="tie-msg" class="text-white font-bold uppercase text-center mt-4 px-6 text-sm"></p>
         <p class="text-pink-500 font-black text-[10px] mt-8 tracking-widest animate-pulse">REINICIANDO VOTACIÓN...</p>
@@ -182,6 +181,8 @@
       firebase.initializeApp(firebaseConfig);
       db = firebase.database();
 
+
+      // randomizar nombre
       function randomizeName() {
         const adjs = ["LOCO", "FIERO", "LISTO", "RAPIDO", "SILENCIOSO", "ASTUTO", "BRAVO", "ZEN"];
         const nouns = ["GAMBA", "TIGRE", "LEON", "PULPO", "ZORRO", "LOBO", "HALCON", "MONO"];
@@ -271,40 +272,54 @@
             document.getElementById("btn-final-reset").classList.add("hidden");
             document.getElementById("screen-room").classList.remove("hidden");
             document.getElementById("mode-tag").innerText = "MODO: " + d.mode.toUpperCase();
+
+            //ESCONDEMOS EL PANEL DE IDEAS
             if (d.mode === "ideas" && d.players[myName] && !(d.ideas && d.ideas[myName])) document.getElementById("ideas-input-box").classList.remove("hidden");
             else document.getElementById("ideas-input-box").classList.add("hidden");
+            //MOSTRAMOS LOS CONTROLES DE HOST
             if (isIHost) document.getElementById("host-controls").classList.remove("hidden");
+
+            //MOSTRAMOS LOS JUGADORES
             document.getElementById("player-list").innerHTML = pKeys.map(u => 
                 `<div class="player-card">${isIHost && u !== myName ? `<div class="kick-badge" onclick="kickPlayer('${u}')">×</div>` : ""}
                 <img src="${getAvatar(d.players[u])}" class="avatar"><div class="flex flex-col text-left leading-none">
                 <span class="font-black uppercase text-[11px]">${u}</span>
                 <span class="text-pink-500 font-bold text-[9px] mt-1">${d.points ? d.points[u] || 0 : 0} PTS</span></div></div>`
             ).join("");
+
+
           } else if (d.status === "showing_order") {
             document.getElementById("screen-game-order").classList.remove("hidden");
+            //MOSTRAMOS ORDEN DE TURNOS
             document.getElementById("turn-order-list").innerHTML = d.turnOrder.map((p, i) => 
                 `<div class="player-card text-xs"><div class="bg-pink-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-black">${i+1}</div><img src="${getAvatar(d.players[p])}" class="avatar"><span>${p}</span></div>`
             ).join("");
-            if (isIHost) document.getElementById("host-start-trigger").classList.remove("hidden");
-          } else if (d.status === "started") {
-            document.getElementById("screen-game").classList.remove("hidden");
-            
-            // Mostrar animación de evento si existe
-            if(d.event === "x2" && !d.eventShowed && !isIHost){
-                const evtScr = document.getElementById("event-screen");
-                evtScr.classList.add("active");
-                setTimeout(() => evtScr.classList.remove("active"), 3000);
-            }
 
-            if (d.mode === "admin" && isIHost && !d.players[myName]) {
-              document.getElementById("admin-view").classList.remove("hidden"); document.getElementById("player-view").classList.add("hidden");
-              document.getElementById("admin-word-info").innerText = d.word;
-            } else {
-              document.getElementById("admin-view").classList.add("hidden"); document.getElementById("player-view").classList.remove("hidden");
-              if (d.assignments && d.assignments[myName]) showRole(d.assignments[myName], d.word, d.category);
-            }
-            if (isIHost) document.getElementById("host-game-controls").classList.remove("hidden");
+            if (isIHost) document.getElementById("host-start-trigger").classList.remove("hidden");
+            } 
+            else if (d.status === "started") {
+              document.getElementById("screen-game").classList.remove("hidden");
+              
+              // MOSTRAR EVENTO A TODOS (Admin, Impostor e Inocentes)
+              if(d.event === "x2" && !d.eventShowed) {
+                  const el = document.getElementById("event-screen");
+                  el.classList.add("active");
+                  setTimeout(() => el.classList.remove("active"), 3000);
+                  // Solo el host marca el evento como mostrado para que no se repita
+                  if(isIHost) db.ref(`rooms/${currentRoom}/eventShowed`).set(true);
+              }
+
+              if (d.mode === "admin" && isIHost && !d.players[myName]) {
+                document.getElementById("admin-view").classList.remove("hidden"); document.getElementById("player-view").classList.add("hidden");
+                document.getElementById("admin-word-info").innerText = d.word;
+              } else {
+                document.getElementById("admin-view").classList.add("hidden"); document.getElementById("player-view").classList.remove("hidden");
+                if (d.assignments && d.assignments[myName]) showRole(d.assignments[myName], d.word, d.category);
+              }
+              if (isIHost) document.getElementById("host-game-controls").classList.remove("hidden");
+
           } else if (d.status === "voting") {
+
             document.getElementById("screen-voting").classList.remove("hidden");
             const numLiars = Object.values(d.assignments).filter(r => r === "mentiroso").length;
             
@@ -322,37 +337,53 @@
             }
 
             if (d.votes && Object.keys(d.votes).length >= pKeys.length && !d.animShowed) {
-                const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
-                const counts = {}; Object.values(d.votes).forEach(vList => vList.forEach(v => counts[v] = (counts[v] || 0) + 1));
-                const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
-                const winners = sorted.filter(e => e[1] === sorted[0][1]);
-                const isTie = winners.length > 1;
+              const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
+              const counts = {}; Object.values(d.votes).forEach(vL => vL.forEach(v => counts[v] = (counts[v] || 0) + 1));
+              const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+              const winners = sorted.filter(e => e[1] === sorted[0][1]);
 
-                if (isIHost) {
-                    db.ref(`rooms/${currentRoom}/animShowed`).set(true);
-                    const multiplier = (d.event === "x2") ? 2 : 1;
+              if (isIHost) {
+                  db.ref(`rooms/${currentRoom}/animShowed`).set(true);
+                  const multiplier = (d.event === "x2") ? 2 : 1;
+                  if (winners.length === 1) {
+                      const target = winners[0][0], targetIsLiar = d.assignments[target] === "mentiroso";
+                      Object.entries(d.assignments).forEach(([p, role]) => {
+                          if (role === "mentiroso" && target !== p) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + (3 * multiplier));
+                          if (role === "inocente" && targetIsLiar && d.votes[p]?.includes(target)) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + (1 * multiplier));
+                      });
+                  }
+              }
 
-                    if (!isTie) {
-                        const target = winners[0][0], targetIsLiar = d.assignments[target] === "mentiroso";
-                        Object.entries(d.assignments).forEach(([p, role]) => {
-                            if (role === "mentiroso" && target !== p) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + (3 * multiplier));
-                            if (role === "inocente" && targetIsLiar && d.votes[p]?.includes(target)) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + (1 * multiplier));
-                        });
-                    }
-                }
-                if (isTie) {
-                    const screen = document.getElementById("tie-screen");
-                    document.getElementById("tie-msg").innerText = `HAY UN EMPATE ENTRE: ${winners.map(w=>w[0]).join(" Y ")}`;
-                    screen.classList.add("active");
-                    setTimeout(() => { screen.classList.remove("active"); if(isIHost) db.ref(`rooms/${currentRoom}`).update({ status: "started", votes: null, animShowed: false }); }, 5000);
+              if (winners.length > 1) {
+                  const scr = document.getElementById("tie-screen");
+                  document.querySelector("#tie-screen .hero-title").innerText = "EMPATE";
+                  document.querySelector("#tie-screen .hero-title").style.color = "#fff";
+                  document.getElementById("tie-msg").innerText = "Empate de votos: nadie es expulsado";
+                  document.getElementById("tie-icon").innerText = "⚖️";
+                  scr.classList.add("active");
+                  setTimeout(() => { 
+                      scr.classList.remove("active"); 
+                      if(isIHost) db.ref(`rooms/${currentRoom}`).update({ status: "started", votes: null, animShowed: false }); 
+                  }, 4000);                
                 } else {
-                    const screen = document.getElementById("ejection-screen");
-                    document.getElementById("ejection-avatars-flow").innerHTML = liars.map(l => `<div class="floating-avatar"><img src="${getAvatar(d.players[l])}" class="w-full h-full"></div>`).join("");
-                    document.getElementById("ejection-msg").innerHTML = `MENTIROSOS:<br><span class="text-pink-500">${liars.join(" & ")}</span>`;
-                    screen.classList.add("active");
-                    setTimeout(() => { screen.classList.remove("active"); showFinalResults(d, pKeys, counts); }, 5000);
-                }
-            }
+                  const target = winners[0][0], targetIsLiar = d.assignments[target] === "mentiroso";
+                  if (targetIsLiar) {
+                      const scr = document.getElementById("ejection-screen");
+                      document.getElementById("ejection-avatars-flow").innerHTML = liars.map(l => `<div class="floating-avatar"><img src="${getAvatar(d.players[l])}" class="w-full h-full"></div>`).join("");
+                      document.getElementById("ejection-msg").innerHTML = `MENTIROSO PILLADO:<br><span class="text-pink-500">${target}</span>`;
+                      scr.classList.add("active");
+                      setTimeout(() => { scr.classList.remove("active"); showFinalResults(d, pKeys, counts); }, 5000);
+                  } else {
+                      // VICTORIA DEL IMPOSTOR (Si el más votado era un Inocente)
+                      const scr = document.getElementById("tie-screen"); 
+                      document.getElementById("tie-msg").innerText = "¡LOS MENTIROSOS HAN GANADO!";
+                      document.querySelector("#tie-screen .hero-title").innerText = "DERROTA";
+                      document.getElementById("tie-icon").innerText = "💀";
+                      scr.classList.add("active");
+                      setTimeout(() => { scr.classList.remove("active"); showFinalResults(d, pKeys, counts); }, 5000);
+                  }
+              }
+          }
           }
         });
       }
@@ -390,20 +421,52 @@
         });
       }
 
+
+      
       function confirmStartGame() {
         db.ref("rooms/" + currentRoom).once("value", (s) => {
           const d = s.val(), num = parseInt(document.getElementById("liar-range").value);
-    const dictionary = [
-            { w: "LEÓN", c: "ANIMALES" }, { w: "TIGRE", c: "ANIMALES" }, { w: "ELEFANTE", c: "ANIMALES" }, { w: "CEBRA", c: "ANIMALES" }, { w: "GIRAFA", c: "ANIMALES" }, { w: "DELFÍN", c: "ANIMALES" }, { w: "TIBURÓN", c: "ANIMALES" }, { w: "ÁGUILA", c: "ANIMALES" }, { w: "PINGÜINO", c: "ANIMALES" }, { w: "CANGURO", c: "ANIMALES" }, { w: "PANDA", c: "ANIMALES" }, { w: "LOBO", c: "ANIMALES" }, { w: "ZORRO", c: "ANIMALES" }, { w: "MONO", c: "ANIMALES" }, { w: "CABALLO", c: "ANIMALES" }, { w: "VACA", c: "ANIMALES" }, { w: "CERDO", c: "ANIMALES" }, { w: "OVEJA", c: "ANIMALES" }, { w: "GALLINA", c: "ANIMALES" }, { w: "PATO", c: "ANIMALES" }, { w: "CISNE", c: "ANIMALES" }, { w: "LORO", c: "ANIMALES" }, { w: "BÚHO", c: "ANIMALES" }, { w: "MURCIÉLAGO", c: "ANIMALES" }, { w: "RANA", c: "ANIMALES" }, { w: "COCODRILO", c: "ANIMALES" }, { w: "TORTUGA", c: "ANIMALES" }, { w: "SERPIENTE", c: "ANIMALES" }, { w: "BALLENA", c: "ANIMALES" }, { w: "PULPO", c: "ANIMALES" }, { w: "MEDUSA", c: "ANIMALES" }, { w: "ESTRELLA DE MAR", c: "ANIMALES" }, { w: "HORMIGA", c: "ANIMALES" }, { w: "ABEJA", c: "ANIMALES" }, { w: "MARIPOSA", c: "ANIMALES" }, { w: "ARAÑA", c: "ANIMALES" }, { w: "ESCORPIÓN", c: "ANIMALES" }, { w: "CAMELLO", c: "ANIMALES" }, { w: "HIPOPÓTAMO", c: "ANIMALES" }, { w: "RINOCERONTE", c: "ANIMALES" }, { w: "PIZZA", c: "COMIDA" }, { w: "HAMBURGUESA", c: "COMIDA" }, { w: "SUSHI", c: "COMIDA" }, { w: "PASTA", c: "COMIDA" }, { w: "ENSALADA", c: "COMIDA" }, { w: "PAELLA", c: "COMIDA" }, { w: "TACO", c: "COMIDA" }, { w: "BURRITO", c: "COMIDA" }, { w: "LASAÑA", c: "COMIDA" }, { w: "SOPA", c: "COMIDA" }, { w: "FILETE", c: "COMIDA" }, { w: "POLLO ASADO", c: "COMIDA" }, { w: "PESCADO", c: "COMIDA" }, { w: "MARISCO", c: "COMIDA" }, { w: "TORTILLA", c: "COMIDA" }, { w: "CROQUETAS", c: "COMIDA" }, { w: "JAMÓN", c: "COMIDA" }, { w: "QUESO", c: "COMIDA" }, { w: "PAN", c: "COMIDA" }, { w: "ARROZ", c: "COMIDA" }, { w: "MANZANA", c: "COMIDA" }, { w: "PLÁTANO", c: "COMIDA" }, { w: "FRESA", c: "COMIDA" }, { w: "NARANJA", c: "COMIDA" }, { w: "UVA", c: "COMIDA" }, { w: "SANDÍA", c: "COMIDA" }, { w: "PIÑA", c: "COMIDA" }, { w: "KIWI", c: "COMIDA" }, { w: "TOMATE", c: "COMIDA" }, { w: "LECHUGA", c: "COMIDA" }, { w: "ZANAHORIA", c: "COMIDA" }, { w: "PATATA", c: "COMIDA" }, { w: "CEBOLLA", c: "COMIDA" }, { w: "AJO", c: "COMIDA" }, { w: "CHOCOLATE", c: "COMIDA" }, { w: "HELADO", c: "COMIDA" }, { w: "TARTA", c: "COMIDA" }, { w: "GALLETA", c: "COMIDA" }, { w: "DONUT", c: "COMIDA" }, { w: "CAFÉ", c: "COMIDA" }, { w: "TÉ", c: "COMIDA" }, { w: "CERVEZA", c: "COMIDA" }, { w: "VINO", c: "COMIDA" }, { w: "REFRESCO", c: "COMIDA" }, { w: "ZUMO", c: "COMIDA" }, { w: "AGUA", c: "COMIDA" }, { w: "MESA", c: "HOGAR" }, { w: "SILLA", c: "HOGAR" }, { w: "SOFÁ", c: "HOGAR" }, { w: "CAMA", c: "HOGAR" }, { w: "ARMARIO", c: "HOGAR" }, { w: "ESTANTERÍA", c: "HOGAR" }, { w: "LÁMPARA", c: "HOGAR" }, { w: "ESPEJO", c: "HOGAR" }, { w: "CUADRO", c: "HOGAR" }, { w: "RELOJ", c: "HOGAR" }, { w: "TELEVISOR", c: "HOGAR" }, { w: "ORDENADOR", c: "HOGAR" }, { w: "TELÉFONO", c: "HOGAR" }, { w: "NEVERA", c: "HOGAR" }, { w: "LAVADORA", c: "HOGAR" }, { w: "MICROONDAS", c: "HOGAR" }, { w: "HORNO", c: "HOGAR" }, { w: "BATIDORA", c: "HOGAR" }, { w: "CAFETERA", c: "HOGAR" }, { w: "PLATO", c: "HOGAR" }, { w: "VASO", c: "HOGAR" }, { w: "TAZA", c: "HOGAR" }, { w: "TENEDOR", c: "HOGAR" }, { w: "CUCHILLO", c: "HOGAR" }, { w: "CUCHARA", c: "HOGAR" }, { w: "SARTÉN", c: "HOGAR" }, { w: "OLLA", c: "HOGAR" }, { w: "TOALLA", c: "HOGAR" }, { w: "SÁBANA", c: "HOGAR" }, { w: "ALMOHADA", c: "HOGAR" }, { w: "CORTINA", c: "HOGAR" }, { w: "ALFOMBRA", c: "HOGAR" }, { w: "PUERTA", c: "HOGAR" }, { w: "VENTANA", c: "HOGAR" }, { w: "LLAVE", c: "HOGAR" }, { w: "MARTILLO", c: "HOGAR" }, { w: "DESTORNILLADOR", c: "HOGAR" }, { w: "ESCOBA", c: "HOGAR" }, { w: "CUBO", c: "HOGAR" }, { w: "PLANCHA", c: "HOGAR" }, { w: "FÚTBOL", c: "DEPORTES" }, { w: "BALONCESTO", c: "DEPORTES" }, { w: "TENIS", c: "DEPORTES" }, { w: "NATACIÓN", c: "DEPORTES" }, { w: "CICLISMO", c: "DEPORTES" }, { w: "ATLETISMO", c: "DEPORTES" }, { w: "BOXEO", c: "DEPORTES" }, { w: "GOLF", c: "DEPORTES" }, { w: "VOLEIBOL", c: "DEPORTES" }, { w: "RUGBY", c: "DEPORTES" }, { w: "BÉISBOL", c: "DEPORTES" }, { w: "ESQUÍ", c: "DEPORTES" }, { w: "SURF", c: "DEPORTES" }, { w: "SKATE", c: "DEPORTES" }, { w: "KARATE", c: "DEPORTES" }, { w: "YOGA", c: "DEPORTES" }, { w: "AJEDREZ", c: "DEPORTES" }, { w: "BILLAR", c: "DEPORTES" }, { w: "DARDOS", c: "DEPORTES" }, { w: "VIDEOJUEGOS", c: "OCIO" }, { w: "CINE", c: "OCIO" }, { w: "TEATRO", c: "OCIO" }, { w: "MÚSICA", c: "OCIO" }, { w: "LECTURA", c: "OCIO" }, { w: "PINTURA", c: "OCIO" }, { w: "BAILE", c: "OCIO" }, { w: "FOTOGRAFÍA", c: "OCIO" }, { w: "VIAJAR", c: "OCIO" }, { w: "CAMPING", c: "OCIO" }, { w: "SENDERISMO", c: "OCIO" }, { w: "PESCA", c: "OCIO" }, { w: "NAVEGACIÓN", c: "OCIO" }, { w: "MÉDICO", c: "PROFESIONES" }, { w: "ENFERMERO", c: "PROFESIONES" }, { w: "DENTISTA", c: "PROFESIONES" }, { w: "PROFESOR", c: "PROFESIONES" }, { w: "CIENTÍFICO", c: "PROFESIONES" }, { w: "INGENIERO", c: "PROFESIONES" }, { w: "ARQUITECTO", c: "PROFESIONES" }, { w: "ABOGADO", c: "PROFESIONES" }, { w: "POLICÍA", c: "PROFESIONES" }, { w: "BOMBERO", c: "PROFESIONES" }, { w: "PILOTO", c: "PROFESIONES" }, { w: "ASTRONAUTA", c: "PROFESIONES" }, { w: "COCINERO", c: "PROFESIONES" }, { w: "CAMARERO", c: "PROFESIONES" }, { w: "ARTISTA", c: "PROFESIONES" }, { w: "MÚSICO", c: "PROFESIONES" }, { w: "ACTOR", c: "PROFESIONES" }, { w: "ESCRITOR", c: "PROFESIONES" }, { w: "PERIODISTA", c: "PROFESIONES" }, { w: "FOTÓGRAFO", c: "PROFESIONES" }, { w: "DISEÑADOR", c: "PROFESIONES" }, { w: "PROGRAMADOR", c: "PROFESIONES" }, { w: "MECÁNICO", c: "PROFESIONES" }, { w: "ELECTRICISTA", c: "PROFESIONES" }, { w: "FONTANERO", c: "PROFESIONES" }, { w: "CARPINTERO", c: "PROFESIONES" }, { w: "ALBAÑIL", c: "PROFESIONES" }, { w: "GRANJERO", c: "PROFESIONES" }, { w: "VETERINARIO", c: "PROFESIONES" }, { w: "PELUQUERO", c: "PROFESIONES" }, { w: "PLAYA", c: "LUGARES" }, { w: "MONTAÑA", c: "LUGARES" }, { w: "BOSQUE", c: "LUGARES" }, { w: "DESIERTO", c: "LUGARES" }, { w: "SELVA", c: "LUGARES" }, { w: "RÍO", c: "LUGARES" }, { w: "LAGO", c: "LUGARES" }, { w: "OCÉANO", c: "LUGARES" }, { w: "ISLA", c: "LUGARES" }, { w: "VOLCÁN", c: "LUGARES" }, { w: "CIUDAD", c: "LUGARES" }, { w: "PUEBLO", c: "LUGARES" }, { w: "PARQUE", c: "LUGARES" }, { w: "ZOO", c: "LUGARES" }, { w: "MUSEO", c: "LUGARES" }, { w: "BIBLIOTECA", c: "LUGARES" }, { w: "ESCUELA", c: "LUGARES" }, { w: "UNIVERSIDAD", c: "LUGARES" }, { w: "HOSPITAL", c: "LUGARES" }, { w: "FARMACIA", c: "LUGARES" }, { w: "SUPERMERCADO", c: "LUGARES" }, { w: "RESTAURANTE", c: "LUGARES" }, { w: "HOTEL", c: "LUGARES" }, { w: "AEROPUERTO", c: "LUGARES" }, { w: "ESTACIÓN", c: "LUGARES" }, { w: "CASTILLO", c: "LUGARES" }, { w: "IGLESIA", c: "LUGARES" }, { w: "PUENTE", c: "LUGARES" }, { w: "RASCACIELOS", c: "LUGARES" }, { w: "CUEVA", c: "LUGARES" }, { w: "COCHE", c: "TRANSPORTE" }, { w: "AUTOBÚS", c: "TRANSPORTE" }, { w: "TREN", c: "TRANSPORTE" }, { w: "METRO", c: "TRANSPORTE" }, { w: "TAXI", c: "TRANSPORTE" }, { w: "MOTO", c: "TRANSPORTE" }, { w: "BICICLETA", c: "TRANSPORTE" }, { w: "PATINETE", c: "TRANSPORTE" }, { w: "CAMIÓN", c: "TRANSPORTE" }, { w: "FURGONETA", c: "TRANSPORTE" }, { w: "BARCO", c: "TRANSPORTE" }, { w: "SUBMARINO", c: "TRANSPORTE" }, { w: "HELICÓPTERO", c: "TRANSPORTE" }, { w: "COHETE", c: "TRANSPORTE" }, { w: "GLOBO", c: "TRANSPORTE" }, { w: "CAMISETA", c: "ROPA" }, { w: "PANTALÓN", c: "ROPA" }, { w: "VESTIDO", c: "ROPA" }, { w: "FALDA", c: "ROPA" }, { w: "CHAQUETA", c: "ROPA" }, { w: "ABRIGO", c: "ROPA" }, { w: "JERSEY", c: "ROPA" }, { w: "ZAPATOS", c: "ROPA" }, { w: "ZAPATILLAS", c: "ROPA" }, { w: "BOTAS", c: "ROPA" }, { w: "SOMBRERO", c: "ROPA" }, { w: "GORRA", c: "ROPA" }, { w: "GUANTES", c: "ROPA" }, { w: "BUFANDA", c: "ROPA" }, { w: "CINTURÓN", c: "ROPA" }, { w: "GAFAS", c: "ACCESORIOS" }, { w: "RELOJ DE PULSERA", c: "ACCESORIOS" }, { w: "ANILLO", c: "ACCESORIOS" }, { w: "COLLAR", c: "ACCESORIOS" }, { w: "PENDIENTES", c: "ACCESORIOS" }, { w: "BOLSO", c: "ACCESORIOS" }, { w: "MOCHILA", c: "ACCESORIOS" }, { w: "PARAGUAS", c: "ACCESORIOS" }, { w: "ÁATOMO", c: "CIENCIA" }, { w: "CÉLULA", c: "CIENCIA" }, { w: "PLANETA", c: "CIENCIA" }, { w: "ESTRELLA", c: "CIENCIA" }, { w: "GALAXIA", c: "CIENCIA" }, { w: "GRAVEDAD", c: "CIENCIA" }, { w: "ENERGÍA", c: "CIENCIA" }, { w: "ROBOT", c: "TECNOLOGÍA" }, { w: "INTERNET", c: "TECNOLOGÍA" }, { w: "SOFTWARE", c: "TECNOLOGÍA" }, { w: "BATERÍA", c: "TECNOLOGÍA" }, { w: "CÁMARA", c: "TECNOLOGÍA" }, { w: "ALTAVOZ", c: "TECNOLOGÍA" }, { w: "PANTALLA", c: "TECNOLOGÍA" }, { w: "TECLADO", c: "TECNOLOGÍA" }, { w: "RATÓN", c: "TECNOLOGÍA" }, { w: "SATÉLITE", c: "TECNOLOGÍA" }, { w: "DRON", c: "TECNOLOGÍA" }, { w: "GUITARRA", c: "MÚSICA" }, { w: "PIANO", c: "MÚSICA" }, { w: "VIOLÍN", c: "MÚSICA" }, { w: "BATERÍA MÚSICAL", c: "MÚSICA" }, { w: "FLAUTA", c: "MÚSICA" }, { w: "TROMPETA", c: "MÚSICA" }, { w: "ACORDEÓN", c: "MÚSICA" }, { w: "HARPA", c: "MÚSICA" }, { w: "PIRÁMIDE", c: "HISTORIA" }, { w: "MOMIA", c: "HISTORIA" }, { w: "CABALLERO", c: "HISTORIA" }, { w: "VIKINGO", c: "HISTORIA" }, { w: "PIRATA", c: "HISTORIA" }, { w: "DINOSAURIO", c: "HISTORIA" }, { w: "FÓSIL", c: "HISTORIA" }, { w: "BRÚJULA", c: "HISTORIA" }, { w: "MAPA", c: "HISTORIA" }, { w: "ESTATUA", c: "ARTE" }, { w: "PINCEL", c: "ARTE" }, { w: "LIENZO", c: "ARTE" }, { w: "ESCULTURA", c: "ARTE" }, { w: "POESÍA", c: "ARTE" }, { w: "CÓMIC", c: "ARTE" }, { w: "MANGA", c: "ARTE" }, { w: "DIBUJO ANIMADO", c: "ARTE" }, { w: "FUEGO", c: "ELEMENTOS" }, { w: "HIELO", c: "ELEMENTOS" }, { w: "RAYO", c: "ELEMENTOS" }, { w: "VIENTO", c: "ELEMENTOS" }, { w: "TERREMOTO", c: "ELEMENTOS" }, { w: "LLUVIA", c: "ELEMENTOS" }, { w: "NIEVE", c: "ELEMENTOS" }, { w: "NIEBLA", c: "ELEMENTOS" }, { w: "ARCOIRIS", c: "ELEMENTOS" }, { w: "ECLIPSE", c: "ELEMENTOS" }
+          const dictionary = [
+              { w: "LEÓN", c: "ANIMALES" }, { w: "PIZZA", c: "COMIDA" }, { w: "FÚTBOL", c: "DEPORTES" }, { w: "MESA", c: "HOGAR" }, { w: "CINE", c: "OCIO" }, { w: "MÉDICO", c: "PROFESIONES" }
           ];
-          let item = (d.mode === "ideas") ? Object.values(d.ideas)[Math.floor(Math.random() * Object.keys(d.ideas).length)] : dictionary[Math.floor(Math.random() * dictionary.length)];
-          if (d.mode === "admin" && document.getElementById("admin-manual-word").value) item = {w:document.getElementById("admin-manual-word").value.toUpperCase(), c:"MANUAL"};
           
-          let assigns = {}, shuffled = shuffleArray([...d.turnOrder]);
-          shuffled.forEach((p, i) => (assigns[p] = i < num ? "mentiroso" : "inocente"));
+          let item;
+          let autorDeLaIdea = null;
+
+          // 1. SELECCIÓN DE PALABRA Y AUTOR
+          if (d.mode === "ideas" && d.ideas) {
+              const autores = Object.keys(d.ideas);
+              autorDeLaIdea = autores[Math.floor(Math.random() * autores.length)];
+              item = d.ideas[autorDeLaIdea];
+          } else if (d.mode === "admin" && document.getElementById("admin-manual-word").value) {
+              item = {w:document.getElementById("admin-manual-word").value.toUpperCase(), c:"MANUAL"};
+          } else {
+              item = dictionary[Math.floor(Math.random() * dictionary.length)];
+          }
           
-          // EVENTO ALEATORIO X2
-          const event = (Math.random() < 0.25) ? "x2" : "none";
+          // 2. ASIGNACIÓN DE ROLES (PROTEGIENDO AL AUTOR)
+          let assigns = {};
+          const pKeys = d.turnOrder; // Lista de jugadores en la sala
+          
+          // Filtramos la lista: quitamos al autor para que no entre en el sorteo de impostores
+          let candidatosAImpostor = pKeys.filter(p => p !== autorDeLaIdea);
+          
+          // Mezclamos solo a los que SI pueden ser impostores
+          candidatosAImpostor = shuffleArray([...candidatosAImpostor]);
+          
+          pKeys.forEach(p => {
+              if (p === autorDeLaIdea) {
+                  // El que mandó la idea es Inocente siempre
+                  assigns[p] = "inocente";
+              } else {
+                  // Buscamos su posición en la lista de candidatos mezclada
+                  const idx = candidatosAImpostor.indexOf(p);
+                  assigns[p] = (idx < num) ? "mentiroso" : "inocente";
+              }
+          });
+          
+          // 3. EVENTO ALEATORIO X2
+          const event = (Math.random() < 0.3) ? "x2" : "none";
 
           db.ref("rooms/" + currentRoom).update({ 
             status: "started", 
@@ -417,6 +480,8 @@
           });
         });
       }
+
+
 
       function openVoting() { db.ref(`rooms/${currentRoom}`).update({ status: "voting", votes: null }); }
       
@@ -432,7 +497,7 @@
         document.getElementById("role-title").innerText = r === "mentiroso" ? "MENTIROSO" : "INOCENTE";
         document.getElementById("role-title").style.color = r === "mentiroso" ? "#db2777" : "#fff";
         document.getElementById("word-display").innerText = r === "mentiroso" ? "???" : w;
-        document.getElementById("hint-text").innerText = (r === "mentiroso" ? "Pista: " : "Categoría: ") + c;
+        document.getElementById("hint-text").innerText = (r === "mentiroso" ? "Pista: " +  c : "");
       }
 
       function resetGame() { 
