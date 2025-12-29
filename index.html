@@ -55,7 +55,6 @@
   </head>
   <body>
     <button id="btn-logout" onclick="logout()" class="btn-back hidden">← Salir</button>
-    
     <div id="btn-random-avatar" class="hidden" onclick="randomizeAvatarInRoom()">🎲</div>
     <div id="trigger-reaction" class="hidden" onclick="document.getElementById('reaction-menu').classList.toggle('open')">💬</div>
     <div id="reaction-container"></div>
@@ -67,6 +66,18 @@
       <button onclick="sendReaction('🔥')" class="reaction-btn">🔥</button>
     </div>
 
+  <div id="btn-show-order" class="hidden" onclick="toggleOrderModal(true)" style="position: fixed; bottom: 85px; left: 22.5px; width: 50px; height: 50px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; z-index: 201; box-shadow: 0 0 20px rgba(255,255,255,0.2); cursor: pointer;">📜</div>
+
+<div id="order-modal" class="hidden" onclick="checkClickOutside(event)" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; backdrop-filter: blur(10px);">
+    <div style="background: #111; border: 1px solid rgba(255,255,255,0.1); padding: 2rem; border-radius: 30px; width: 100%; max-width: 350px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+        <h2 class="hero-title !text-[2rem] mb-6">ORDEN</h2>
+        
+        <div id="order-modal-list" class="flex flex-col gap-3 w-full max-h-[50vh] overflow-y-auto pr-2">
+            </div>
+
+        <button onclick="toggleOrderModal(false)" class="btn-action !bg-pink-600 !text-white mt-8 !py-3 !text-xs">CERRAR</button>
+    </div>
+</div>
     <div id="ejection-screen">
       <div id="ejection-avatars-flow" class="w-full h-32 relative flex items-center"></div>
       <p id="ejection-msg" class="font-black text-center text-white uppercase mt-12 text-2xl"></p>
@@ -199,6 +210,7 @@
         if (currentRoom && myName) db.ref(`rooms/${currentRoom}/players/${myName}`).set(avatarSeed);
       }
 
+
       function getAvatar(seed) { return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`; }
       function shuffleArray(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
@@ -219,6 +231,39 @@
       function toggleReveal(s) { document.getElementById("blur-wrapper").className = s ? "show-content" : "blur-content"; }
       function kickPlayer(p) { if (confirm(`¿Expulsar a ${p}?`)) db.ref(`rooms/${currentRoom}/players/${p}`).set("KICKED"); }
       function sendReaction(emoji) { if (currentRoom) db.ref(`rooms/${currentRoom}/lastReaction`).set({ user: myName, emoji, time: Date.now() }); }
+
+      function toggleOrderModal(show) {
+          const modal = document.getElementById('order-modal');
+          if (show) {
+              db.ref(`rooms/${currentRoom}`).once('value', (s) => {
+                  const d = s.val();
+                  const order = d.turnOrder;
+                  const avatars = d.players; // Obtenemos las semillas de los avatares
+
+                  if (order) {
+                      document.getElementById('order-modal-list').innerHTML = order.map((p, i) => `
+                          <div class="player-card" style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);">
+                              <div style="background: #db2777; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; flex-shrink: 0;">
+                                  ${i + 1}
+                              </div>
+                              <img src="${getAvatar(avatars[p])}" class="avatar" style="width:35px; height:35px; border: 1px solid rgba(255,255,255,0.2);">
+                              <span style="font-weight: 800; text-transform: uppercase; font-size: 12px; color: #fff; margin-left: 5px;">${p}</span>
+                          </div>
+                      `).join("");
+                      modal.classList.remove('hidden');
+                  }
+              });
+          } else {
+              modal.classList.add('hidden');
+          }
+      }
+      function checkClickOutside(event) {
+          const modalContainer = document.querySelector('#order-modal > div');
+          if (event.target === document.getElementById('order-modal')) {
+              toggleOrderModal(false);
+          }
+      }
+
 
       function finalizeCreation(m) {
         let n = document.getElementById("username").value.trim().toUpperCase();
@@ -248,6 +293,8 @@
       function listenToRoom(code) {
         db.ref(`rooms/${code}/players/${myName}`).onDisconnect().remove();
         document.getElementById("btn-random-avatar").classList.remove("hidden");
+
+        
 
         db.ref(`rooms/${code}/lastReaction`).on("value", (s) => {
           const val = s.val(); if (!val || Date.now() - val.time > 2000) return;
@@ -290,6 +337,8 @@
 
           } else if (d.status === "showing_order") {
             document.getElementById("screen-game-order").classList.remove("hidden");
+            // Mostrar botón de orden
+            document.getElementById("btn-show-order").classList.remove("hidden");
             //MOSTRAMOS ORDEN DE TURNOS
             document.getElementById("turn-order-list").innerHTML = d.turnOrder.map((p, i) => 
                 `<div class="player-card text-xs"><div class="bg-pink-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-black">${i+1}</div><img src="${getAvatar(d.players[p])}" class="avatar"><span>${p}</span></div>`
@@ -322,7 +371,8 @@
 
             document.getElementById("screen-voting").classList.remove("hidden");
             const numLiars = Object.values(d.assignments).filter(r => r === "mentiroso").length;
-            
+            document.getElementById("btn-show-order").classList.add("hidden");
+
             if (d.players[myName] && !(d.votes && d.votes[myName])) {
                 document.getElementById("vote-instruction").innerText = numLiars > 1 ? `Selecciona ${numLiars} mentirosos (${tmpV.length}/${numLiars})` : "Selecciona al mentiroso";
                 document.getElementById("vote-list").innerHTML = pKeys.map(u => `
