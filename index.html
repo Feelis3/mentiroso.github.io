@@ -22,7 +22,6 @@
       .hidden { display: none !important; }
       .btn-back { position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
       
-      /* Estilo para el jugador seleccionado al votar */
       .selected-vote { background: rgba(219, 39, 119, 0.2) !important; border-color: var(--pink) !important; transform: scale(1.02); }
 
       /* Controles Flotantes */
@@ -34,8 +33,8 @@
       .reaction-pop { position: absolute; left: 50%; bottom: 20%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; animation: reactionFloat 2.5s ease-out forwards; z-index: 1000;}
       
       @keyframes reactionFloat { 0% { transform: translate(-50%, 0); opacity: 0; scale: 0.5; } 15% { transform: translate(-50%, -20px); opacity: 1; scale: 1.2; } 100% { transform: translate(-50%, -100px); opacity: 0; scale: 1; } }
-      #ejection-screen, #tie-screen { position: fixed; inset: 0; background: #000; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.5s opacity; }
-      #ejection-screen.active, #tie-screen.active { opacity: 1; pointer-events: auto; }
+      #ejection-screen, #tie-screen, #event-screen { position: fixed; inset: 0; background: #000; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.5s opacity; }
+      #ejection-screen.active, #tie-screen.active, #event-screen.active { opacity: 1; pointer-events: auto; }
       .floating-avatar { width: 100px; height: 100px; animation: floatX 4.5s infinite linear; position: absolute; left: -150px; }
       @keyframes floatX { 0% { transform: translateX(-150vw) rotate(0deg); } 100% { transform: translateX(250vw) rotate(1000deg); } }
 
@@ -49,6 +48,9 @@
         margin-top: 25px;
       }
       @keyframes shine { to { background-position: 200% center; } }
+      
+      .event-card { background: #facc15; color: #000; padding: 10px 20px; border-radius: 10px; font-weight: 900; text-transform: uppercase; animation: pulse 1s infinite; }
+      @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
     </style>
   </head>
   <body>
@@ -76,6 +78,11 @@
         <p class="hero-title !text-[2.5rem]">EMPATE</p>
         <p id="tie-msg" class="text-white font-bold uppercase text-center mt-4 px-6 text-sm"></p>
         <p class="text-pink-500 font-black text-[10px] mt-8 tracking-widest animate-pulse">REINICIANDO VOTACIÓN...</p>
+    </div>
+
+    <div id="event-screen">
+        <div class="event-card">⚠️ EVENTO: PUNTOS X2 ⚠️</div>
+        <p class="text-white font-black mt-4 text-center">¡LOS PUNTOS DE ESTA RONDA VALEN EL DOBLE!</p>
     </div>
 
     <div class="stack-container">
@@ -106,6 +113,9 @@
         <div class="text-center w-full max-w-lg px-4">
           <div id="mode-tag" class="inline-block bg-pink-600 text-white text-[8px] font-black uppercase px-3 py-1 rounded-full mb-2">---</div>
           <h2 id="room-code-display" class="hero-title !text-[3.5rem] mb-2">----</h2>
+          
+          <button onclick="shareWhatsApp()" class="bg-green-600 text-[10px] font-black py-2 px-4 rounded-full mb-4 uppercase flex items-center gap-2 mx-auto">Invitar Amigos 📲</button>
+
           <div id="ideas-input-box" class="hidden bg-zinc-900 border border-pink-600/50 p-5 rounded-2xl mb-6 shadow-2xl">
             <input type="text" id="idea-word" class="custom-input !text-xs !py-3" placeholder="Palabra secreta" />
             <input type="text" id="idea-cat" class="custom-input !text-xs !py-3" placeholder="Categoría" />
@@ -176,6 +186,11 @@
         const adjs = ["LOCO", "FIERO", "LISTO", "RAPIDO", "SILENCIOSO", "ASTUTO", "BRAVO", "ZEN"];
         const nouns = ["GAMBA", "TIGRE", "LEON", "PULPO", "ZORRO", "LOBO", "HALCON", "MONO"];
         document.getElementById('username').value = adjs[Math.floor(Math.random()*adjs.length)] + "_" + nouns[Math.floor(Math.random()*nouns.length)];
+      }
+
+      function shareWhatsApp() {
+        const text = `¡Únete a MENTIROSO! 🦐\nSala: ${currentRoom}\nLink: ${window.location.origin}${window.location.pathname}?join=${currentRoom}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
       }
 
       function randomizeAvatarInRoom() {
@@ -273,6 +288,14 @@
             if (isIHost) document.getElementById("host-start-trigger").classList.remove("hidden");
           } else if (d.status === "started") {
             document.getElementById("screen-game").classList.remove("hidden");
+            
+            // Mostrar animación de evento si existe
+            if(d.event === "x2" && !d.eventShowed && !isIHost){
+                const evtScr = document.getElementById("event-screen");
+                evtScr.classList.add("active");
+                setTimeout(() => evtScr.classList.remove("active"), 3000);
+            }
+
             if (d.mode === "admin" && isIHost && !d.players[myName]) {
               document.getElementById("admin-view").classList.remove("hidden"); document.getElementById("player-view").classList.add("hidden");
               document.getElementById("admin-word-info").innerText = d.word;
@@ -307,11 +330,13 @@
 
                 if (isIHost) {
                     db.ref(`rooms/${currentRoom}/animShowed`).set(true);
+                    const multiplier = (d.event === "x2") ? 2 : 1;
+
                     if (!isTie) {
                         const target = winners[0][0], targetIsLiar = d.assignments[target] === "mentiroso";
                         Object.entries(d.assignments).forEach(([p, role]) => {
-                            if (role === "mentiroso" && target !== p) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + 3);
-                            if (role === "inocente" && targetIsLiar && d.votes[p]?.includes(target)) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + 1);
+                            if (role === "mentiroso" && target !== p) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + (3 * multiplier));
+                            if (role === "inocente" && targetIsLiar && d.votes[p]?.includes(target)) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + (1 * multiplier));
                         });
                     }
                 }
@@ -336,10 +361,24 @@
         document.getElementById("vote-results").classList.remove("hidden");
         document.getElementById("results-display").innerHTML = pKeys.map(p => {
             const isLi = d.assignments[p] === "mentiroso";
-            return `<div class="flex justify-between items-center ${isLi ? "bg-pink-600/20 border border-pink-600" : "bg-white/5"} p-2 rounded-lg text-white">
-                <div class="flex flex-col"><span class="text-[10px] font-black uppercase">${p}</span>
-                <span class="${isLi ? "text-pink-500" : "text-zinc-500"} text-[8px] font-bold uppercase">${isLi ? "Mentiroso" : "Inocente"}</span></div>
-                <span class="font-black text-xs">${counts[p] || 0} VOTOS</span></div>`;
+            const numVotos = counts[p] || 0;
+            
+            // LÓGICA DE LOGROS
+            let badge = "";
+            if (isLi && numVotos === 0) badge = "🏆 MAESTRO DEL ENGAÑO";
+            else if (!isLi && numVotos >= pKeys.length / 2) badge = "🦐 GAMBA CONFUNDIDA";
+            else if (isLi && numVotos === pKeys.length) badge = "💀 PILLADO TOTAL";
+
+            return `<div class="flex flex-col bg-white/5 p-3 rounded-lg text-white mb-2 ${isLi ? "border-l-4 border-pink-600" : ""}">
+                <div class="flex justify-between items-center w-full">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-black uppercase">${p}</span>
+                        <span class="${isLi ? "text-pink-500" : "text-zinc-500"} text-[8px] font-bold uppercase">${isLi ? "Mentiroso" : "Inocente"}</span>
+                    </div>
+                    <span class="font-black text-xs">${numVotos} VOTOS</span>
+                </div>
+                ${badge ? `<div class="text-[7px] mt-1 font-black text-yellow-400 tracking-tighter">${badge}</div>` : ""}
+            </div>`;
         }).join("");
         if (d.host === myName) document.getElementById("btn-final-reset").classList.remove("hidden");
       }
@@ -354,14 +393,28 @@
       function confirmStartGame() {
         db.ref("rooms/" + currentRoom).once("value", (s) => {
           const d = s.val(), num = parseInt(document.getElementById("liar-range").value);
-        const dictionary = [
+    const dictionary = [
             { w: "LEÓN", c: "ANIMALES" }, { w: "TIGRE", c: "ANIMALES" }, { w: "ELEFANTE", c: "ANIMALES" }, { w: "CEBRA", c: "ANIMALES" }, { w: "GIRAFA", c: "ANIMALES" }, { w: "DELFÍN", c: "ANIMALES" }, { w: "TIBURÓN", c: "ANIMALES" }, { w: "ÁGUILA", c: "ANIMALES" }, { w: "PINGÜINO", c: "ANIMALES" }, { w: "CANGURO", c: "ANIMALES" }, { w: "PANDA", c: "ANIMALES" }, { w: "LOBO", c: "ANIMALES" }, { w: "ZORRO", c: "ANIMALES" }, { w: "MONO", c: "ANIMALES" }, { w: "CABALLO", c: "ANIMALES" }, { w: "VACA", c: "ANIMALES" }, { w: "CERDO", c: "ANIMALES" }, { w: "OVEJA", c: "ANIMALES" }, { w: "GALLINA", c: "ANIMALES" }, { w: "PATO", c: "ANIMALES" }, { w: "CISNE", c: "ANIMALES" }, { w: "LORO", c: "ANIMALES" }, { w: "BÚHO", c: "ANIMALES" }, { w: "MURCIÉLAGO", c: "ANIMALES" }, { w: "RANA", c: "ANIMALES" }, { w: "COCODRILO", c: "ANIMALES" }, { w: "TORTUGA", c: "ANIMALES" }, { w: "SERPIENTE", c: "ANIMALES" }, { w: "BALLENA", c: "ANIMALES" }, { w: "PULPO", c: "ANIMALES" }, { w: "MEDUSA", c: "ANIMALES" }, { w: "ESTRELLA DE MAR", c: "ANIMALES" }, { w: "HORMIGA", c: "ANIMALES" }, { w: "ABEJA", c: "ANIMALES" }, { w: "MARIPOSA", c: "ANIMALES" }, { w: "ARAÑA", c: "ANIMALES" }, { w: "ESCORPIÓN", c: "ANIMALES" }, { w: "CAMELLO", c: "ANIMALES" }, { w: "HIPOPÓTAMO", c: "ANIMALES" }, { w: "RINOCERONTE", c: "ANIMALES" }, { w: "PIZZA", c: "COMIDA" }, { w: "HAMBURGUESA", c: "COMIDA" }, { w: "SUSHI", c: "COMIDA" }, { w: "PASTA", c: "COMIDA" }, { w: "ENSALADA", c: "COMIDA" }, { w: "PAELLA", c: "COMIDA" }, { w: "TACO", c: "COMIDA" }, { w: "BURRITO", c: "COMIDA" }, { w: "LASAÑA", c: "COMIDA" }, { w: "SOPA", c: "COMIDA" }, { w: "FILETE", c: "COMIDA" }, { w: "POLLO ASADO", c: "COMIDA" }, { w: "PESCADO", c: "COMIDA" }, { w: "MARISCO", c: "COMIDA" }, { w: "TORTILLA", c: "COMIDA" }, { w: "CROQUETAS", c: "COMIDA" }, { w: "JAMÓN", c: "COMIDA" }, { w: "QUESO", c: "COMIDA" }, { w: "PAN", c: "COMIDA" }, { w: "ARROZ", c: "COMIDA" }, { w: "MANZANA", c: "COMIDA" }, { w: "PLÁTANO", c: "COMIDA" }, { w: "FRESA", c: "COMIDA" }, { w: "NARANJA", c: "COMIDA" }, { w: "UVA", c: "COMIDA" }, { w: "SANDÍA", c: "COMIDA" }, { w: "PIÑA", c: "COMIDA" }, { w: "KIWI", c: "COMIDA" }, { w: "TOMATE", c: "COMIDA" }, { w: "LECHUGA", c: "COMIDA" }, { w: "ZANAHORIA", c: "COMIDA" }, { w: "PATATA", c: "COMIDA" }, { w: "CEBOLLA", c: "COMIDA" }, { w: "AJO", c: "COMIDA" }, { w: "CHOCOLATE", c: "COMIDA" }, { w: "HELADO", c: "COMIDA" }, { w: "TARTA", c: "COMIDA" }, { w: "GALLETA", c: "COMIDA" }, { w: "DONUT", c: "COMIDA" }, { w: "CAFÉ", c: "COMIDA" }, { w: "TÉ", c: "COMIDA" }, { w: "CERVEZA", c: "COMIDA" }, { w: "VINO", c: "COMIDA" }, { w: "REFRESCO", c: "COMIDA" }, { w: "ZUMO", c: "COMIDA" }, { w: "AGUA", c: "COMIDA" }, { w: "MESA", c: "HOGAR" }, { w: "SILLA", c: "HOGAR" }, { w: "SOFÁ", c: "HOGAR" }, { w: "CAMA", c: "HOGAR" }, { w: "ARMARIO", c: "HOGAR" }, { w: "ESTANTERÍA", c: "HOGAR" }, { w: "LÁMPARA", c: "HOGAR" }, { w: "ESPEJO", c: "HOGAR" }, { w: "CUADRO", c: "HOGAR" }, { w: "RELOJ", c: "HOGAR" }, { w: "TELEVISOR", c: "HOGAR" }, { w: "ORDENADOR", c: "HOGAR" }, { w: "TELÉFONO", c: "HOGAR" }, { w: "NEVERA", c: "HOGAR" }, { w: "LAVADORA", c: "HOGAR" }, { w: "MICROONDAS", c: "HOGAR" }, { w: "HORNO", c: "HOGAR" }, { w: "BATIDORA", c: "HOGAR" }, { w: "CAFETERA", c: "HOGAR" }, { w: "PLATO", c: "HOGAR" }, { w: "VASO", c: "HOGAR" }, { w: "TAZA", c: "HOGAR" }, { w: "TENEDOR", c: "HOGAR" }, { w: "CUCHILLO", c: "HOGAR" }, { w: "CUCHARA", c: "HOGAR" }, { w: "SARTÉN", c: "HOGAR" }, { w: "OLLA", c: "HOGAR" }, { w: "TOALLA", c: "HOGAR" }, { w: "SÁBANA", c: "HOGAR" }, { w: "ALMOHADA", c: "HOGAR" }, { w: "CORTINA", c: "HOGAR" }, { w: "ALFOMBRA", c: "HOGAR" }, { w: "PUERTA", c: "HOGAR" }, { w: "VENTANA", c: "HOGAR" }, { w: "LLAVE", c: "HOGAR" }, { w: "MARTILLO", c: "HOGAR" }, { w: "DESTORNILLADOR", c: "HOGAR" }, { w: "ESCOBA", c: "HOGAR" }, { w: "CUBO", c: "HOGAR" }, { w: "PLANCHA", c: "HOGAR" }, { w: "FÚTBOL", c: "DEPORTES" }, { w: "BALONCESTO", c: "DEPORTES" }, { w: "TENIS", c: "DEPORTES" }, { w: "NATACIÓN", c: "DEPORTES" }, { w: "CICLISMO", c: "DEPORTES" }, { w: "ATLETISMO", c: "DEPORTES" }, { w: "BOXEO", c: "DEPORTES" }, { w: "GOLF", c: "DEPORTES" }, { w: "VOLEIBOL", c: "DEPORTES" }, { w: "RUGBY", c: "DEPORTES" }, { w: "BÉISBOL", c: "DEPORTES" }, { w: "ESQUÍ", c: "DEPORTES" }, { w: "SURF", c: "DEPORTES" }, { w: "SKATE", c: "DEPORTES" }, { w: "KARATE", c: "DEPORTES" }, { w: "YOGA", c: "DEPORTES" }, { w: "AJEDREZ", c: "DEPORTES" }, { w: "BILLAR", c: "DEPORTES" }, { w: "DARDOS", c: "DEPORTES" }, { w: "VIDEOJUEGOS", c: "OCIO" }, { w: "CINE", c: "OCIO" }, { w: "TEATRO", c: "OCIO" }, { w: "MÚSICA", c: "OCIO" }, { w: "LECTURA", c: "OCIO" }, { w: "PINTURA", c: "OCIO" }, { w: "BAILE", c: "OCIO" }, { w: "FOTOGRAFÍA", c: "OCIO" }, { w: "VIAJAR", c: "OCIO" }, { w: "CAMPING", c: "OCIO" }, { w: "SENDERISMO", c: "OCIO" }, { w: "PESCA", c: "OCIO" }, { w: "NAVEGACIÓN", c: "OCIO" }, { w: "MÉDICO", c: "PROFESIONES" }, { w: "ENFERMERO", c: "PROFESIONES" }, { w: "DENTISTA", c: "PROFESIONES" }, { w: "PROFESOR", c: "PROFESIONES" }, { w: "CIENTÍFICO", c: "PROFESIONES" }, { w: "INGENIERO", c: "PROFESIONES" }, { w: "ARQUITECTO", c: "PROFESIONES" }, { w: "ABOGADO", c: "PROFESIONES" }, { w: "POLICÍA", c: "PROFESIONES" }, { w: "BOMBERO", c: "PROFESIONES" }, { w: "PILOTO", c: "PROFESIONES" }, { w: "ASTRONAUTA", c: "PROFESIONES" }, { w: "COCINERO", c: "PROFESIONES" }, { w: "CAMARERO", c: "PROFESIONES" }, { w: "ARTISTA", c: "PROFESIONES" }, { w: "MÚSICO", c: "PROFESIONES" }, { w: "ACTOR", c: "PROFESIONES" }, { w: "ESCRITOR", c: "PROFESIONES" }, { w: "PERIODISTA", c: "PROFESIONES" }, { w: "FOTÓGRAFO", c: "PROFESIONES" }, { w: "DISEÑADOR", c: "PROFESIONES" }, { w: "PROGRAMADOR", c: "PROFESIONES" }, { w: "MECÁNICO", c: "PROFESIONES" }, { w: "ELECTRICISTA", c: "PROFESIONES" }, { w: "FONTANERO", c: "PROFESIONES" }, { w: "CARPINTERO", c: "PROFESIONES" }, { w: "ALBAÑIL", c: "PROFESIONES" }, { w: "GRANJERO", c: "PROFESIONES" }, { w: "VETERINARIO", c: "PROFESIONES" }, { w: "PELUQUERO", c: "PROFESIONES" }, { w: "PLAYA", c: "LUGARES" }, { w: "MONTAÑA", c: "LUGARES" }, { w: "BOSQUE", c: "LUGARES" }, { w: "DESIERTO", c: "LUGARES" }, { w: "SELVA", c: "LUGARES" }, { w: "RÍO", c: "LUGARES" }, { w: "LAGO", c: "LUGARES" }, { w: "OCÉANO", c: "LUGARES" }, { w: "ISLA", c: "LUGARES" }, { w: "VOLCÁN", c: "LUGARES" }, { w: "CIUDAD", c: "LUGARES" }, { w: "PUEBLO", c: "LUGARES" }, { w: "PARQUE", c: "LUGARES" }, { w: "ZOO", c: "LUGARES" }, { w: "MUSEO", c: "LUGARES" }, { w: "BIBLIOTECA", c: "LUGARES" }, { w: "ESCUELA", c: "LUGARES" }, { w: "UNIVERSIDAD", c: "LUGARES" }, { w: "HOSPITAL", c: "LUGARES" }, { w: "FARMACIA", c: "LUGARES" }, { w: "SUPERMERCADO", c: "LUGARES" }, { w: "RESTAURANTE", c: "LUGARES" }, { w: "HOTEL", c: "LUGARES" }, { w: "AEROPUERTO", c: "LUGARES" }, { w: "ESTACIÓN", c: "LUGARES" }, { w: "CASTILLO", c: "LUGARES" }, { w: "IGLESIA", c: "LUGARES" }, { w: "PUENTE", c: "LUGARES" }, { w: "RASCACIELOS", c: "LUGARES" }, { w: "CUEVA", c: "LUGARES" }, { w: "COCHE", c: "TRANSPORTE" }, { w: "AUTOBÚS", c: "TRANSPORTE" }, { w: "TREN", c: "TRANSPORTE" }, { w: "METRO", c: "TRANSPORTE" }, { w: "TAXI", c: "TRANSPORTE" }, { w: "MOTO", c: "TRANSPORTE" }, { w: "BICICLETA", c: "TRANSPORTE" }, { w: "PATINETE", c: "TRANSPORTE" }, { w: "CAMIÓN", c: "TRANSPORTE" }, { w: "FURGONETA", c: "TRANSPORTE" }, { w: "BARCO", c: "TRANSPORTE" }, { w: "SUBMARINO", c: "TRANSPORTE" }, { w: "HELICÓPTERO", c: "TRANSPORTE" }, { w: "COHETE", c: "TRANSPORTE" }, { w: "GLOBO", c: "TRANSPORTE" }, { w: "CAMISETA", c: "ROPA" }, { w: "PANTALÓN", c: "ROPA" }, { w: "VESTIDO", c: "ROPA" }, { w: "FALDA", c: "ROPA" }, { w: "CHAQUETA", c: "ROPA" }, { w: "ABRIGO", c: "ROPA" }, { w: "JERSEY", c: "ROPA" }, { w: "ZAPATOS", c: "ROPA" }, { w: "ZAPATILLAS", c: "ROPA" }, { w: "BOTAS", c: "ROPA" }, { w: "SOMBRERO", c: "ROPA" }, { w: "GORRA", c: "ROPA" }, { w: "GUANTES", c: "ROPA" }, { w: "BUFANDA", c: "ROPA" }, { w: "CINTURÓN", c: "ROPA" }, { w: "GAFAS", c: "ACCESORIOS" }, { w: "RELOJ DE PULSERA", c: "ACCESORIOS" }, { w: "ANILLO", c: "ACCESORIOS" }, { w: "COLLAR", c: "ACCESORIOS" }, { w: "PENDIENTES", c: "ACCESORIOS" }, { w: "BOLSO", c: "ACCESORIOS" }, { w: "MOCHILA", c: "ACCESORIOS" }, { w: "PARAGUAS", c: "ACCESORIOS" }, { w: "ÁATOMO", c: "CIENCIA" }, { w: "CÉLULA", c: "CIENCIA" }, { w: "PLANETA", c: "CIENCIA" }, { w: "ESTRELLA", c: "CIENCIA" }, { w: "GALAXIA", c: "CIENCIA" }, { w: "GRAVEDAD", c: "CIENCIA" }, { w: "ENERGÍA", c: "CIENCIA" }, { w: "ROBOT", c: "TECNOLOGÍA" }, { w: "INTERNET", c: "TECNOLOGÍA" }, { w: "SOFTWARE", c: "TECNOLOGÍA" }, { w: "BATERÍA", c: "TECNOLOGÍA" }, { w: "CÁMARA", c: "TECNOLOGÍA" }, { w: "ALTAVOZ", c: "TECNOLOGÍA" }, { w: "PANTALLA", c: "TECNOLOGÍA" }, { w: "TECLADO", c: "TECNOLOGÍA" }, { w: "RATÓN", c: "TECNOLOGÍA" }, { w: "SATÉLITE", c: "TECNOLOGÍA" }, { w: "DRON", c: "TECNOLOGÍA" }, { w: "GUITARRA", c: "MÚSICA" }, { w: "PIANO", c: "MÚSICA" }, { w: "VIOLÍN", c: "MÚSICA" }, { w: "BATERÍA MÚSICAL", c: "MÚSICA" }, { w: "FLAUTA", c: "MÚSICA" }, { w: "TROMPETA", c: "MÚSICA" }, { w: "ACORDEÓN", c: "MÚSICA" }, { w: "HARPA", c: "MÚSICA" }, { w: "PIRÁMIDE", c: "HISTORIA" }, { w: "MOMIA", c: "HISTORIA" }, { w: "CABALLERO", c: "HISTORIA" }, { w: "VIKINGO", c: "HISTORIA" }, { w: "PIRATA", c: "HISTORIA" }, { w: "DINOSAURIO", c: "HISTORIA" }, { w: "FÓSIL", c: "HISTORIA" }, { w: "BRÚJULA", c: "HISTORIA" }, { w: "MAPA", c: "HISTORIA" }, { w: "ESTATUA", c: "ARTE" }, { w: "PINCEL", c: "ARTE" }, { w: "LIENZO", c: "ARTE" }, { w: "ESCULTURA", c: "ARTE" }, { w: "POESÍA", c: "ARTE" }, { w: "CÓMIC", c: "ARTE" }, { w: "MANGA", c: "ARTE" }, { w: "DIBUJO ANIMADO", c: "ARTE" }, { w: "FUEGO", c: "ELEMENTOS" }, { w: "HIELO", c: "ELEMENTOS" }, { w: "RAYO", c: "ELEMENTOS" }, { w: "VIENTO", c: "ELEMENTOS" }, { w: "TERREMOTO", c: "ELEMENTOS" }, { w: "LLUVIA", c: "ELEMENTOS" }, { w: "NIEVE", c: "ELEMENTOS" }, { w: "NIEBLA", c: "ELEMENTOS" }, { w: "ARCOIRIS", c: "ELEMENTOS" }, { w: "ECLIPSE", c: "ELEMENTOS" }
-          ];          
+          ];
           let item = (d.mode === "ideas") ? Object.values(d.ideas)[Math.floor(Math.random() * Object.keys(d.ideas).length)] : dictionary[Math.floor(Math.random() * dictionary.length)];
           if (d.mode === "admin" && document.getElementById("admin-manual-word").value) item = {w:document.getElementById("admin-manual-word").value.toUpperCase(), c:"MANUAL"};
+          
           let assigns = {}, shuffled = shuffleArray([...d.turnOrder]);
           shuffled.forEach((p, i) => (assigns[p] = i < num ? "mentiroso" : "inocente"));
-          db.ref("rooms/" + currentRoom).update({ status: "started", word: item.w, category: item.c, assignments: assigns, votes: null, animShowed: false });
+          
+          // EVENTO ALEATORIO X2
+          const event = (Math.random() < 0.25) ? "x2" : "none";
+
+          db.ref("rooms/" + currentRoom).update({ 
+            status: "started", 
+            word: item.w, 
+            category: item.c, 
+            assignments: assigns, 
+            votes: null, 
+            animShowed: false,
+            event: event,
+            eventShowed: false 
+          });
         });
       }
 
@@ -370,22 +423,8 @@
       function castVote(t) {
         db.ref(`rooms/${currentRoom}`).once("value", (s) => {
           const d = s.val(), max = Object.values(d.assignments).filter(r => r === "mentiroso").length;
-          
-          // Lógica de selección/deselección local
-          if (tmpV.includes(t)) {
-              tmpV = tmpV.filter(v => v !== t);
-          } else if (tmpV.length < max) {
-              tmpV.push(t);
-          }
-
-          // Si hemos completado los votos necesarios, enviamos a Firebase
-          if (tmpV.length === max) { 
-              db.ref(`rooms/${currentRoom}/votes/${myName}`).set(tmpV); 
-              tmpV = []; 
-          } else {
-              // Si no hemos terminado, forzamos actualización visual de la lista de botones
-              listenToRoom(currentRoom); 
-          }
+          if (tmpV.includes(t)) { tmpV = tmpV.filter(v => v !== t); } else if (tmpV.length < max) { tmpV.push(t); }
+          if (tmpV.length === max) { db.ref(`rooms/${currentRoom}/votes/${myName}`).set(tmpV); tmpV = []; } else { listenToRoom(currentRoom); }
         });
       }
 
@@ -403,7 +442,8 @@
             turnOrder: null, 
             votes: null, 
             animShowed: false, 
-            ideas: null 
+            ideas: null,
+            event: "none"
         }); 
       }
 
