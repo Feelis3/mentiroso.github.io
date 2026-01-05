@@ -273,10 +273,18 @@
                 const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
                 const multiplier = (d.event === "x2") ? 2 : 1;
                 const puntosAGanar = 3 * multiplier;
+
+                // 1. Sumar puntos
                 liars.forEach(liarName => {
                     db.ref(`rooms/${currentRoom}/points/${liarName}`).transaction(cp => (cp || 0) + puntosAGanar);
                 });
-                db.ref(`rooms/${currentRoom}`).update({ status: "impostor_win_direct", liarsList: liars.join(" & ") });
+
+                // 2. Cambiar estado (esto disparará el listener en todos los móviles)
+                db.ref(`rooms/${currentRoom}`).update({ 
+                    status: "impostor_win_direct", 
+                    liarsList: liars.join(" & "),
+                    animShowed: false // Resetear para que el listener actúe
+                });
             });
         }
       }
@@ -475,15 +483,33 @@
               setTimeout(() => { scr.classList.remove("active"); showFinalResults(d, pKeys, {}); }, 5000);
           }
           else if (d.status === "impostor_win_direct") {
-            ["screen-game", "screen-voting"].forEach(id => document.getElementById(id).classList.add("hidden"));
+            // Ocultamos todas las pantallas de juego
+            ["screen-game", "screen-voting", "screen-game-order"].forEach(id => document.getElementById(id).classList.add("hidden"));
+            
             const victoryScr = document.getElementById("victory-screen");
-            document.getElementById("victory-msg").innerText = "EL MENTIROSO ADIVINÓ LA PALABRA: " + (d.liarsList || "");
+            document.getElementById("victory-msg").innerText = "¡EL MENTIROSO ADIVINÓ LA PALABRA! \n " + (d.liarsList || "");
+            
             victoryScr.classList.add("active");
+
+            // Solo el host gestiona la limpieza y puntos para evitar duplicados
+            if (isIHost && !d.animShowed) {
+                db.ref(`rooms/${currentRoom}/animShowed`).set(true);
+                // Los mentirosos ya recibieron puntos en la función adminImpostorGana()
+            }
+
             setTimeout(() => {
                 victoryScr.classList.remove("active");
-                document.getElementById("screen-voting").classList.remove("hidden"); document.getElementById("vote-results").classList.remove("hidden");
-                document.getElementById("results-display").innerHTML = `<div class="text-center p-4 bg-amber-500/20 rounded-xl border border-amber-500 text-amber-500 font-bold uppercase text-xs">Victoria directa por adivinanza</div>`;
-                if (isIHost) document.getElementById("btn-final-reset").classList.remove("hidden");
+                // Mostramos los resultados finales para que el host pueda dar a "Nueva Ronda"
+                document.getElementById("screen-voting").classList.remove("hidden");
+                document.getElementById("vote-results").classList.remove("hidden");
+                document.getElementById("results-display").innerHTML = `
+                    <div class="text-center p-4 bg-amber-500/20 rounded-xl border border-amber-500 text-amber-500 font-bold uppercase text-xs">
+                        Victoria directa: El impostor adivinó la palabra secreta.
+                    </div>`;
+                
+                if (isIHost) {
+                    document.getElementById("btn-final-reset").classList.remove("hidden");
+                }
             }, 5000);
           }
         });
@@ -553,4 +579,5 @@
     </script>
   </body>
 </html>
+
 
