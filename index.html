@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>MENTIROSO - Online</title>
@@ -8,67 +8,56 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;900&display=swap");
-      :root { --pink: #db2777; --gold: #fbbf24; }
-      body { background-color: #000; color: #fff; font-family: "Inter", sans-serif; margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent; user-select: none; }
-      
-      /* Layout Base Flexible */
-      section { min-height: 100vh; height: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: #050505; padding: 2rem 1rem; overflow-y: auto; }
-      
-      .hero-title { font-family: "Archivo Black", sans-serif; font-size: clamp(2rem, 8vw, 5rem); line-height: 0.85; text-align: center; text-transform: uppercase; background: linear-gradient(to bottom, #fff, #444); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-      .custom-input { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.8rem; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; font-weight: 700; color: white; margin-bottom: 0.5rem; outline: none; }
-      .btn-action { background: #fff; color: #000; font-weight: 900; padding: 1rem; text-transform: uppercase; width: 100%; max-width: 320px; border-radius: 12px; transition: 0.3s; border: none; cursor: pointer; flex-shrink: 0; }
-      .player-card { position: relative; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.6rem; border-radius: 16px; display: flex; align-items: center; gap: 8px; width: 100%; transition: 0.2s; flex-shrink: 0; }
-      .avatar { width: 35px; height: 35px; border-radius: 50%; background: #1a1a1a; border: 2px solid var(--pink); }
-      .blur-content { filter: blur(25px); opacity: 0; transition: 0.3s; pointer-events: none; }
-      .show-content { filter: blur(0); opacity: 1; }
-      .hidden { display: none !important; }
-      .btn-back { position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
-      .selected-vote { background: rgba(219, 39, 119, 0.2) !important; border-color: var(--pink) !important; transform: scale(1.02); }
-
-      /* Botones Flotantes */
-      #trigger-reaction { position: fixed; bottom: 85px; right: 20px; width: 55px; height: 55px; background: var(--pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 201; box-shadow: 0 0 20px rgba(219,39,119,0.4); }
-      #btn-random-avatar { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; z-index: 201; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
-      #btn-show-order { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; z-index: 201; box-shadow: 0 0 20px rgba(255,255,255,0.2); cursor: pointer; }
-      #reaction-menu { position: fixed; bottom: 150px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 200; transition: 0.3s; transform: scale(0); opacity: 0; transform-origin: bottom right; }
-      #reaction-menu.open { transform: scale(1); opacity: 1; }
-      .reaction-btn { width: 45px; height: 45px; background: #1a1a1a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-      .reaction-pop { position: absolute; left: 50%; bottom: 20%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; animation: reactionFloat 2.5s ease-out forwards; z-index: 1000;}
-      
-      @keyframes reactionFloat { 0% { transform: translate(-50%, 0); opacity: 0; scale: 0.5; } 15% { transform: translate(-50%, -20px); opacity: 1; scale: 1.2; } 100% { transform: translate(-50%, -100px); opacity: 0; scale: 1; } }
-      #ejection-screen, #tie-screen, #event-screen, #victory-screen { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.5s opacity; }
-      #ejection-screen.active, #tie-screen.active, #event-screen.active, #victory-screen.active { opacity: 1; pointer-events: auto; }
-      #victory-screen { background: radial-gradient(circle, #451a03 0%, #000 100%); }
-      .floating-avatar { width: 100px; height: 100px; animation: floatX 4.5s infinite linear; position: absolute; left: -150px; }
-      @keyframes floatX { 0% { transform: translateX(-150vw) rotate(0deg); } 100% { transform: translateX(250vw) rotate(1000deg); } }
-      .signature { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(90deg, #444, #fff, #444); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shine 3s linear infinite; margin-top: 25px; }
-      @keyframes shine { to { background-position: 200% center; } }
-      .event-card { background: #facc15; color: #000; padding: 10px 20px; border-radius: 10px; font-weight: 900; text-transform: uppercase; animation: pulse 1s infinite; }
-      @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-      
-      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-      .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--pink); border-radius: 10px; }
+        @import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;900&display=swap");
+        :root { --pink: #db2777; --gold: #fbbf24; }
+        body { background-color: #000; color: #fff; font-family: "Inter", sans-serif; margin: 0; overflow-y: auto; -webkit-tap-highlight-color: transparent; user-select: none; }
+        section { min-height: 100vh; height: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: #050505; padding: 2rem 1.5rem; }
+        .hero-title { font-family: "Archivo Black", sans-serif; font-size: clamp(2rem, 8vw, 5rem); line-height: 0.85; text-align: center; text-transform: uppercase; background: linear-gradient(to bottom, #fff, #444); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .custom-input { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.8rem; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; font-weight: 700; color: white; margin-bottom: 0.5rem; outline: none; }
+        .btn-action { background: #fff; color: #000; font-weight: 900; padding: 1rem; text-transform: uppercase; width: 100%; max-width: 320px; border-radius: 12px; transition: 0.3s; border: none; cursor: pointer; }
+        .player-card { position: relative; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.6rem; border-radius: 16px; display: flex; align-items: center; gap: 8px; width: 100%; transition: 0.2s; }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; background: #1a1a1a; border: 2px solid var(--pink); }
+        .blur-content { filter: blur(25px); opacity: 0; transition: 0.3s; pointer-events: none; }
+        .show-content { filter: blur(0); opacity: 1; }
+        .hidden { display: none !important; }
+        .btn-back { position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
+        .selected-vote { background: rgba(219, 39, 119, 0.2) !important; border-color: var(--pink) !important; transform: scale(1.02); }
+        #trigger-reaction { position: fixed; bottom: 85px; right: 20px; width: 55px; height: 55px; background: var(--pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 201; box-shadow: 0 0 20px rgba(219,39,119,0.4); }
+        #btn-random-avatar { position: fixed; bottom: 20px; right: 22.5px; width: 50px; height: 50px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; z-index: 201; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        #reaction-menu { position: fixed; bottom: 150px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 200; transition: 0.3s; transform: scale(0); opacity: 0; transform-origin: bottom right; }
+        #reaction-menu.open { transform: scale(1); opacity: 1; }
+        .reaction-btn { width: 45px; height: 45px; background: #1a1a1a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .reaction-pop { position: absolute; left: 50%; bottom: 20%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; animation: reactionFloat 2.5s ease-out forwards; z-index: 1000;}
+        @keyframes reactionFloat { 0% { transform: translate(-50%, 0); opacity: 0; scale: 0.5; } 15% { transform: translate(-50%, -20px); opacity: 1; scale: 1.2; } 100% { transform: translate(-50%, -100px); opacity: 0; scale: 1; } }
+        #ejection-screen, #tie-screen, #event-screen, #victory-screen { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.5s opacity; }
+        #ejection-screen.active, #tie-screen.active, #event-screen.active, #victory-screen.active { opacity: 1; pointer-events: auto; }
+        #victory-screen { background: radial-gradient(circle, #451a03 0%, #000 100%); }
+        .floating-avatar { width: 100px; height: 100px; animation: floatX 4.5s infinite linear; position: absolute; left: -150px; }
+        @keyframes floatX { 0% { transform: translateX(-150vw) rotate(0deg); } 100% { transform: translateX(250vw) rotate(1000deg); } }
+        .signature { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(90deg, #444, #fff, #444); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shine 3s linear infinite; margin-top: 25px; }
+        @keyframes shine { to { background-position: 200% center; } }
+        .event-card { background: #facc15; color: #000; padding: 10px 20px; border-radius: 10px; font-weight: 900; text-transform: uppercase; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <button id="btn-logout" onclick="logout()" class="btn-back hidden">← Salir</button>
     <div id="btn-random-avatar" class="hidden" onclick="randomizeAvatarInRoom()">🎲</div>
-    <div id="btn-show-order" class="hidden" onclick="toggleOrderModal(true)">📜</div>
     <div id="trigger-reaction" class="hidden" onclick="document.getElementById('reaction-menu').classList.toggle('open')">💬</div>
     <div id="reaction-container"></div>
     <div id="reaction-menu">
-      <button onclick="sendReaction('🦐')" class="reaction-btn">🦐</button>
-      <button onclick="sendReaction('🤫')" class="reaction-btn">🤫</button>
-      <button onclick="sendReaction('🧐')" class="reaction-btn">🧐</button>
-      <button onclick="sendReaction('😅')" class="reaction-btn">😅</button>
-      <button onclick="sendReaction('🔥')" class="reaction-btn">🔥</button>
+        <button onclick="sendReaction('🦐')" class="reaction-btn">🦐</button>
+        <button onclick="sendReaction('🤫')" class="reaction-btn">🤫</button>
+        <button onclick="sendReaction('🧐')" class="reaction-btn">🧐</button>
+        <button onclick="sendReaction('😅')" class="reaction-btn">😅</button>
+        <button onclick="sendReaction('🔥')" class="reaction-btn">🔥</button>
     </div>
-
+    <div id="btn-show-order" class="hidden" onclick="toggleOrderModal(true)" style="position: fixed; bottom: 85px; left: 22.5px; width: 50px; height: 50px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; z-index: 201; box-shadow: 0 0 20px rgba(255,255,255,0.2); cursor: pointer;">📜</div>
+    
     <div id="order-modal" class="hidden" onclick="checkClickOutside(event)" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; backdrop-filter: blur(10px);">
         <div style="background: #111; border: 1px solid rgba(255,255,255,0.1); padding: 2rem; border-radius: 30px; width: 100%; max-width: 350px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
             <h2 class="hero-title !text-[2rem] mb-6">ORDEN</h2>
-            <div id="order-modal-list" class="flex flex-col gap-3 w-full max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar"></div>
+            <div id="order-modal-list" class="flex flex-col gap-3 w-full max-h-[50vh] overflow-y-auto pr-2"></div>
             <button onclick="toggleOrderModal(false)" class="btn-action !bg-pink-600 !text-white mt-8 !py-3 !text-xs">CERRAR</button>
         </div>
     </div>
@@ -76,96 +65,88 @@
     <div id="ejection-screen"><div id="ejection-avatars-flow" class="w-full h-32 relative flex items-center"></div><p id="ejection-msg" class="font-black text-center text-white uppercase mt-12 text-2xl px-6"></p></div>
     <div id="victory-screen"><div class="text-8xl mb-4">👑</div><h2 class="hero-title !text-yellow-500">¡VICTORIA!</h2><p id="victory-msg" class="font-black text-white uppercase text-xl mt-4 text-center px-6"></p></div>
     <div id="tie-screen"><div id="tie-icon" class="text-6xl animate-bounce mb-4">⚖️</div><p class="hero-title !text-[2.5rem]">EMPATE</p><p id="tie-msg" class="text-white font-bold uppercase text-center mt-4 px-6 text-sm"></p><p class="text-pink-500 font-black text-[10px] mt-8 tracking-widest animate-pulse uppercase">REINICIANDO VOTACIÓN...</p></div>
-    <div id="event-screen"><div class="event-card">⚠️ EVENTO: PUNTOS X2 ⚠️</div><p class="text-white font-black mt-4 text-center px-4">¡LOS PUNTOS DE ESTA RONDA VALEN EL DOBLE!</p></div>
+    <div id="event-screen"><div class="event-card">⚠️ EVENTO: PUNTOS X2 ⚠️</div><p class="text-white font-black mt-4 text-center">¡LOS PUNTOS DE ESTA RONDA VALEN EL DOBLE!</p></div>
 
     <div class="stack-container">
-      <section id="screen-lobby">
-        <h1 class="hero-title">MENTI<br />ROSO</h1>
-        <div class="text-6xl my-6 text-center animate-bounce">🦐</div>
-        <div class="flex gap-2 w-full max-w-[320px] mb-4">
-            <input type="text" id="username" class="custom-input !mb-0" placeholder="TU NOMBRE..." />
-            <button onclick="randomizeName()" class="bg-zinc-800 px-4 rounded-xl text-xl border border-white/10">🎲</button>
-        </div>
-        <div id="lobby-main" class="flex flex-col gap-3 w-full items-center">
-          <button onclick="showCreateOptions()" class="btn-action !bg-pink-600 !text-white text-xs">CREAR SALA ONLINE</button>
-          <div class="flex gap-2 w-full max-w-[320px]"><input type="text" id="roomInput" class="custom-input !mb-0" placeholder="CÓDIGO" /><button onclick="joinRoom()" class="bg-zinc-800 px-6 rounded-xl font-black uppercase text-xs text-white border border-white/10">Unirse</button></div>
-        </div>
-        <div id="create-options" class="hidden flex flex-col gap-2 w-full items-center bg-zinc-900/50 p-6 rounded-3xl border border-white/10">
-          <button onclick="finalizeCreation('normal')" class="btn-action !py-3 text-xs">Modo Normal</button>
-          <button onclick="finalizeCreation('ideas')" class="btn-action !py-3 text-xs">Modo Ideas</button>
-          <button onclick="showCreateOptions(false)" class="text-[10px] uppercase font-bold opacity-50 mt-2 text-white">Cancelar</button>
-        </div>
-        <p class="signature">by Marcos Perez Esteban</p>
-      </section>
-
-      <section id="screen-room" class="hidden">
-        <div class="text-center w-full max-w-lg px-4 flex flex-col h-full justify-center">
-          <div id="mode-tag" class="inline-block bg-pink-600 text-white text-[8px] font-black uppercase px-3 py-1 rounded-full mb-2 mx-auto">---</div>
-          <h2 id="room-code-display" class="hero-title !text-[3.5rem] mb-2">----</h2>
-          <button onclick="shareWhatsApp()" class="bg-green-600 text-[10px] font-black py-2 px-4 rounded-full mb-4 uppercase flex items-center gap-2 mx-auto">Invitar Amigos 📲</button>
-          <div id="ideas-input-box" class="hidden bg-zinc-900 border border-pink-600/50 p-5 rounded-2xl mb-6 shadow-2xl w-full max-w-[320px] mx-auto">
-            <input type="text" id="idea-word" class="custom-input !text-xs !py-3" placeholder="Palabra secreta" />
-            <input type="text" id="idea-cat" class="custom-input !text-xs !py-3" placeholder="Categoría" />
-            <button id="btn-send-idea" onclick="sendIdea()" class="btn-action !bg-pink-600 !text-white !py-3 text-xs">Enviar Idea</button>
-          </div>
-          <div id="player-list" class="grid grid-cols-2 gap-2 mt-6 mb-6 max-h-[40vh] overflow-y-auto"></div>
-          <div id="host-controls" class="hidden bg-zinc-900 p-6 rounded-3xl border border-white/10 w-full max-w-[320px] mx-auto">
-            <div id="manual-input-admin" class="hidden mb-4"><input type="text" id="admin-manual-word" class="custom-input !text-xs" placeholder="Palabra Secreta..." /></div>
-            <div class="mb-4">
-                <label class="text-[10px] font-black uppercase text-zinc-500 block mb-1">Mentirosos: <span id="liar-count-val-online" class="text-pink-500">1</span></label>
-                <input type="range" id="liar-range" min="1" max="3" value="1" oninput="document.getElementById('liar-count-val-online').innerText = this.value" />
+        <section id="screen-lobby">
+            <h1 class="hero-title">MENTI<br />ROSO</h1>
+            <div class="text-6xl my-6 text-center animate-bounce">🦐</div>
+            <div class="flex gap-2 w-full max-w-[320px] mb-4">
+                <input type="text" id="username" class="custom-input !mb-0" placeholder="TU NOMBRE..." />
+                <button onclick="randomizeName()" class="bg-zinc-800 px-4 rounded-xl text-xl border border-white/10">🎲</button>
             </div>
-            <button onclick="startGame()" class="btn-action !bg-white !text-black text-xs">INICIAR RONDA</button>
-          </div>
-          <p class="signature">by Marcos Perez Esteban</p>
-        </div>
-      </section>
-
-      <section id="screen-game-order" class="hidden text-center !h-screen !overflow-hidden flex flex-col pt-20 pb-6 px-4">
-        <h2 class="hero-title !text-[2.5rem] mb-6 shrink-0">TURNO</h2>
-        <div id="turn-order-list" class="flex-grow overflow-y-auto flex flex-col gap-3 w-full max-w-sm mx-auto mb-6 pr-2 custom-scrollbar"></div>
-        <div class="w-full max-w-sm mx-auto shrink-0">
-            <button id="host-start-trigger" onclick="confirmStartGame()" class="btn-action !bg-pink-600 !text-white hidden shadow-2xl">VER ROLES</button>
-        </div>
-      </section>
-
-      <section id="screen-game" class="hidden flex flex-col items-center overflow-y-auto h-screen w-full px-4 pt-20 pb-10">
-        <div id="admin-view" class="hidden text-center w-full max-w-sm mb-6 shrink-0">
-            <div class="bg-zinc-900 p-6 rounded-[2rem] border border-white/10 shadow-xl">
-                <p class="text-zinc-500 text-[10px] font-bold uppercase mb-2">Palabra Secreta:</p>
-                <p id="admin-word-info" class="text-3xl font-black uppercase text-white break-words px-2"></p>
+            <div id="lobby-main" class="flex flex-col gap-3 w-full items-center">
+                <button onclick="showCreateOptions()" class="btn-action !bg-pink-600 !text-white text-xs">CREAR SALA ONLINE</button>
+                <div class="flex gap-2 w-full max-w-[320px]"><input type="text" id="roomInput" class="custom-input !mb-0" placeholder="CÓDIGO" /><button onclick="joinRoom()" class="bg-zinc-800 px-6 rounded-xl font-black uppercase text-xs text-white border border-white/10">Unirse</button></div>
             </div>
-        </div>
-        <div id="player-view" class="my-auto border-2 border-white/10 p-8 text-center w-full max-w-sm rounded-[2.5rem] bg-zinc-900/50 shrink-0 shadow-2xl">
-            <div id="blur-wrapper" class="blur-content">
-                <h2 id="role-title" class="text-4xl font-black uppercase mb-6 break-words leading-tight">...</h2>
-                <div id="word-display" class="font-black text-3xl text-yellow-400 mb-4 uppercase break-words px-2">---</div>
-                <p id="hint-text" class="text-zinc-400 text-[11px] font-bold uppercase border-t border-white/5 pt-4 break-all"></p>
+            <div id="create-options" class="hidden flex flex-col gap-2 w-full items-center bg-zinc-900/50 p-6 rounded-3xl border border-white/10">
+                <button onclick="finalizeCreation('normal')" class="btn-action !py-3 text-xs">Modo Normal</button>
+                <button onclick="finalizeCreation('ideas')" class="btn-action !py-3 text-xs">Modo Ideas</button>
+                <button onclick="showCreateOptions(false)" class="text-[10px] uppercase font-bold opacity-50 mt-2 text-white">Cancelar</button>
             </div>
-            <button onmousedown="toggleReveal(true)" onmouseup="toggleReveal(false)" ontouchstart="toggleReveal(true)" ontouchend="toggleReveal(false)" class="mt-8 bg-white text-black text-[11px] font-black py-5 px-10 rounded-2xl w-full uppercase active:scale-95 transition-transform">MANTÉN PARA VER</button>
-        </div>
-        <div id="host-game-controls" class="hidden w-full max-w-[320px] flex flex-col gap-3 mt-10 shrink-0">
-            <button onclick="adminImpostorGana()" class="w-full bg-amber-500 text-black font-black py-4 rounded-2xl text-[10px] uppercase shadow-lg border-b-4 border-amber-700 active:border-b-0 transition-all">✨ EL IMPOSTOR HA ADIVINADO ✨</button>
-            <button onclick="openVoting()" class="btn-action !bg-pink-600 !text-white shadow-xl !w-full !max-w-none">ABRIR VOTACIÓN</button>
-        </div>
-      </section>
+            <p class="signature">by Marcos Perez Esteban</p>
+        </section>
 
-      <section id="screen-voting" class="hidden text-center flex flex-col pt-10 h-screen">
-        <h2 class="hero-title !text-[2.5rem] mb-2 shrink-0">¿QUIÉN ES?</h2>
-        <p id="vote-instruction" class="text-pink-500 font-black text-[10px] uppercase tracking-widest mb-4 shrink-0">Selecciona al mentiroso</p>
-        <div id="vote-list" class="flex-1 flex flex-col gap-3 w-full max-w-sm px-4 mx-auto overflow-y-auto pr-2 pb-6 custom-scrollbar"></div>
-        <div id="vote-results" class="hidden w-full max-w-sm px-4 mt-6 bg-zinc-900/80 p-6 rounded-3xl border border-white/10 mx-auto text-left max-h-[40vh] overflow-y-auto mb-20 custom-scrollbar">
-          <div id="results-display" class="flex flex-col gap-2 mb-6"></div>
-        </div>
-        <div class="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-[320px]">
-            <button id="btn-final-reset" onclick="resetGame()" class="btn-action !bg-white !text-black mt-6 text-xs hidden w-full shadow-2xl">Nueva Ronda</button>
-        </div>
-      </section>
-    </div>
+        <section id="screen-room" class="hidden">
+            <div class="text-center w-full max-w-lg px-4 flex flex-col h-full justify-center">
+                <div id="mode-tag" class="inline-block bg-pink-600 text-white text-[8px] font-black uppercase px-3 py-1 rounded-full mb-2">---</div>
+                <h2 id="room-code-display" class="hero-title !text-[3.5rem] mb-2">----</h2>
+                <button onclick="shareWhatsApp()" class="bg-green-600 text-[10px] font-black py-2 px-4 rounded-full mb-4 uppercase flex items-center gap-2 mx-auto">Invitar Amigos 📲</button>
+                <div id="ideas-input-box" class="hidden bg-zinc-900 border border-pink-600/50 p-5 rounded-2xl mb-6 shadow-2xl">
+                    <input type="text" id="idea-word" class="custom-input !text-xs !py-3" placeholder="Palabra secreta" />
+                    <input type="text" id="idea-cat" class="custom-input !text-xs !py-3" placeholder="Categoría" />
+                    <button id="btn-send-idea" onclick="sendIdea()" class="btn-action !bg-pink-600 !text-white !py-3 text-xs">Enviar Idea</button>
+                </div>
+                <div id="player-list" class="grid grid-cols-2 gap-2 mt-6 mb-6 max-h-[40vh] overflow-y-auto"></div>
+                <div id="host-controls" class="hidden bg-zinc-900 p-6 rounded-3xl border border-white/10 w-full max-w-[320px] mx-auto">
+                    <div id="manual-input-admin" class="hidden mb-4"><input type="text" id="admin-manual-word" class="custom-input !text-xs" placeholder="Palabra Secreta..." /></div>
+                    <div class="mb-4">
+                        <label class="text-[10px] font-black uppercase text-zinc-500 block mb-1">Mentirosos: <span id="liar-count-val-online" class="text-pink-500">1</span></label>
+                        <input type="range" id="liar-range" min="1" max="3" value="1" oninput="document.getElementById('liar-count-val-online').innerText = this.value" />
+                    </div>
+                    <button onclick="startGame()" class="btn-action !bg-white !text-black text-xs">INICIAR RONDA</button>
+                </div>
+            </div>
+        </section>
 
-    <div id="mobile-banner" style="position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #000; z-index: 1000; border-top: 2px solid #db2777; display: flex; align-items: center; justify-content: center;">
-        <button onclick="document.getElementById('mobile-banner').style.display='none'" style="position: absolute; top: -12px; right: 10px; background: #db2777; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; z-index: 1001;">×</button>
-        <a href="https://www.ubereats.com/es/store/kimbo-smash-burger-calle-rio-torcons/MwVdWAVNTfa_z0PAWHJnlQ" target="_blank" style="width: 100%; height: 100%; display: block;"><img src="https://tb-static.uber.com/prod/image-proc/processed_images/a7483896db187678945397f515f635a5/0e8f477e8f858732b95bd74b5e07a538.jpeg" alt="Kimbo" style="width: 100%; height: 100%; object-fit: cover;"></a>
+        <section id="screen-game-order" class="hidden text-center">
+            <h2 class="hero-title !text-[3rem] mb-6">TURNO</h2>
+            <div id="turn-order-list" class="flex flex-col gap-3 w-full max-w-sm px-4 mx-auto max-h-[55vh] overflow-y-auto pr-2 mb-4"></div>
+            <button id="host-start-trigger" onclick="confirmStartGame()" class="btn-action !bg-pink-600 !text-white mt-auto mb-4 hidden">VER ROLES</button>
+        </section>
+
+        <section id="screen-game" class="hidden">
+            <div id="admin-view" class="hidden text-center w-full max-w-sm mb-4">
+                <div class="bg-zinc-900 p-6 rounded-[2rem] border border-white/10 mb-4">
+                    <p class="text-zinc-500 text-[10px] font-bold uppercase mb-2">Palabra Secreta:</p>
+                    <p id="admin-word-info" class="text-3xl font-black uppercase text-white mb-4"></p>
+                    <button onclick="adminImpostorGana()" class="w-full bg-amber-500 text-black font-black py-4 rounded-2xl text-[10px] uppercase shadow-lg border-b-4 border-amber-700 active:border-b-0 transition-all">✨ EL IMPOSTOR HA ADIVINADO ✨</button>
+                </div>
+            </div>
+            <div id="player-view" class="border-2 border-white/10 p-8 text-center w-full max-w-sm rounded-[2.5rem] bg-zinc-900/50 mx-auto">
+                <div id="blur-wrapper" class="blur-content">
+                    <h2 id="role-title" class="text-5xl font-black uppercase mb-8">...</h2>
+                    <div id="word-display" class="font-black text-4xl text-yellow-400 mb-4 uppercase">---</div>
+                    <p id="hint-text" class="text-zinc-400 text-xs font-bold uppercase border-t border-white/5 pt-4"></p>
+                </div>
+                <button onmousedown="toggleReveal(true)" onmouseup="toggleReveal(false)" ontouchstart="toggleReveal(true)" ontouchend="toggleReveal(false)" class="mt-8 bg-white text-black text-[11px] font-black py-5 px-10 rounded-2xl w-full uppercase">MANTÉN PARA VER</button>
+                <p id="dead-msg" class="hidden text-red-500 font-black text-xs mt-4 uppercase">ESTÁS ELIMINADO</p>
+            </div>
+            <div id="host-game-controls" class="hidden w-full max-w-[320px] flex flex-col gap-2 mt-4">
+                <button onclick="adminImpostorGana()" class="w-full bg-amber-500 text-black font-black py-4 rounded-2xl text-[10px] uppercase shadow-lg border-b-4 border-amber-700 active:border-b-0 transition-all">✨ EL IMPOSTOR HA ADIVINADO ✨</button>
+                <button onclick="openVoting()" class="btn-action !bg-pink-600 !text-white shadow-xl">ABRIR VOTACIÓN</button>
+            </div>
+        </section>
+
+        <section id="screen-voting" class="hidden text-center">
+            <h2 class="hero-title !text-[3rem] mb-2">¿QUIÉN ES?</h2>
+            <p id="vote-instruction" class="text-pink-500 font-black text-[10px] uppercase tracking-widest mb-6">Selecciona al mentiroso</p>
+            <div id="vote-list" class="flex flex-col gap-3 w-full max-w-sm px-4 mx-auto overflow-y-auto max-h-[50vh]"></div>
+            <div id="vote-results" class="hidden w-full max-w-sm px-4 mt-6 bg-zinc-900/80 p-6 rounded-3xl border border-white/10 mx-auto">
+                <div id="results-display" class="flex flex-col gap-2 mb-6"></div>
+                <button id="btn-final-reset" onclick="resetGame()" class="btn-action !bg-white !text-black mt-6 text-xs hidden">Nueva Ronda</button>
+            </div>
+        </section>
     </div>
 
     <script>
@@ -182,43 +163,20 @@
       firebase.initializeApp(firebaseConfig);
       db = firebase.database();
 
-      function randomizeName() {
-        const adjs = ["LOCO", "FIERO", "LISTO", "RAPIDO", "SILENCIOSO", "ASTUTO", "BRAVO", "ZEN"];
-        const nouns = ["GAMBA", "TIGRE", "LEON", "PULPO", "ZORRO", "LOBO", "HALCON", "MONO"];
-        document.getElementById('username').value = adjs[Math.floor(Math.random()*adjs.length)] + "_" + nouns[Math.floor(Math.random()*nouns.length)];
-      }
-
-      function shareWhatsApp() {
-        const text = `¡Únete a MENTIROSO! 🦐\nSala: ${currentRoom}\nLink: ${window.location.origin}${window.location.pathname}?join=${currentRoom}`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-      }
-
-      function randomizeAvatarInRoom() {
-        avatarSeed = Math.floor(Math.random()*9999);
-        if (currentRoom && myName) db.ref(`rooms/${currentRoom}/players/${myName}`).set(avatarSeed);
-      }
-
+      function randomizeName() { const adjs = ["LOCO", "FIERO", "LISTO", "RAPIDO", "SILENCIOSO", "ASTUTO", "BRAVO", "ZEN"]; const nouns = ["GAMBA", "TIGRE", "LEON", "PULPO", "ZORRO", "LOBO", "HALCON", "MONO"]; document.getElementById('username').value = adjs[Math.floor(Math.random()*adjs.length)] + "_" + nouns[Math.floor(Math.random()*nouns.length)]; }
+      function shareWhatsApp() { const text = `¡Únete a MENTIROSO! 🦐\nSala: ${currentRoom}\nLink: ${window.location.origin}${window.location.pathname}?join=${currentRoom}`; window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank"); }
+      function randomizeAvatarInRoom() { avatarSeed = Math.floor(Math.random()*9999); if (currentRoom && myName) db.ref(`rooms/${currentRoom}/players/${myName}`).set(avatarSeed); }
       function getAvatar(seed) { return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`; }
       function shuffleArray(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-
-      window.onload = () => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get("join")) document.getElementById("roomInput").value = params.get("join").toUpperCase();
-        const sR = localStorage.getItem("mentiroso_room"), sN = localStorage.getItem("mentiroso_name");
-        if (sR && sN) {
-          db.ref("rooms/" + sR).once("value", (s) => {
-            if (s.exists()) { myName = sN; currentRoom = sR; db.ref(`rooms/${sR}/players/${sN}`).set(avatarSeed); listenToRoom(sR); }
-            else logout();
-          });
-        } else { document.getElementById("screen-lobby").classList.remove("hidden"); }
-      };
-
       function logout() { localStorage.clear(); location.reload(); }
       function showCreateOptions(s = true) { document.getElementById("lobby-main").classList.toggle("hidden", s); document.getElementById("create-options").classList.toggle("hidden", !s); }
-      function toggleReveal(s) { document.getElementById("blur-wrapper").className = s ? "show-content" : "blur-content"; }
+      function toggleReveal(s) { 
+        if(document.getElementById("blur-wrapper").classList.contains("dead")) return;
+        document.getElementById("blur-wrapper").className = s ? "show-content" : "blur-content"; 
+      }
       function kickPlayer(p) { if (confirm(`¿Expulsar a ${p}?`)) db.ref(`rooms/${currentRoom}/players/${p}`).set("KICKED"); }
       function sendReaction(emoji) { if (currentRoom) db.ref(`rooms/${currentRoom}/lastReaction`).set({ user: myName, emoji, time: Date.now() }); }
-
+      
       function toggleOrderModal(show) {
           const modal = document.getElementById('order-modal');
           if (show) {
@@ -226,44 +184,30 @@
                   const d = s.val();
                   if (d && d.turnOrder) {
                       document.getElementById('order-modal-list').innerHTML = d.turnOrder.map((p, i) => `
-                          <div class="player-card" style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 5px;">
+                          <div class="player-card ${d.alivePlayers && !d.alivePlayers.includes(p) ? 'opacity-30 grayscale' : ''}" style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);">
                               <div style="background: #db2777; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; flex-shrink: 0;">${i + 1}</div>
                               <img src="${getAvatar(d.players[p])}" class="avatar" style="width:35px; height:35px; border: 2px solid #db2777;">
-                              <span style="font-weight: 800; text-transform: uppercase; font-size: 13px; color: #fff; margin-left: 10px;">${p}</span>
+                              <span style="font-weight: 800; text-transform: uppercase; font-size: 12px; color: #fff; margin-left: 5px;">${p} ${d.alivePlayers && !d.alivePlayers.includes(p) ? '(MUERTO)' : ''}</span>
                           </div>`).join("");
                       modal.classList.remove('hidden');
                       modal.style.display = 'flex';
                   }
               });
-          } else {
-              modal.classList.add('hidden');
-              modal.style.display = 'none';
-          }
+          } else { modal.classList.add('hidden'); modal.style.display = 'none'; }
       }
-
-      function checkClickOutside(event) {
-          if (event.target === document.getElementById('order-modal')) {
-              toggleOrderModal(false);
-          }
-      }
+      function checkClickOutside(event) { if (event.target === document.getElementById('order-modal')) toggleOrderModal(false); }
 
       function adminImpostorGana() {
         if (!currentRoom) return;
-        if (confirm("¿Confirmas que el impostor ha adivinado la palabra? Los mentirosos recibirán sus puntos.")) {
+        if (confirm("¿Confirmas que el impostor ha adivinado la palabra?")) {
             db.ref(`rooms/${currentRoom}`).once('value', (s) => {
                 const d = s.val();
                 if (!d.assignments) return;
                 const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
                 const multiplier = (d.event === "x2") ? 2 : 1;
                 const puntosAGanar = 3 * multiplier;
-                liars.forEach(liarName => {
-                    db.ref(`rooms/${currentRoom}/points/${liarName}`).transaction(cp => (cp || 0) + puntosAGanar);
-                });
-                db.ref(`rooms/${currentRoom}`).update({ 
-                    status: "impostor_win_direct", 
-                    liarsList: liars.join(" & "),
-                    animShowed: false
-                });
+                liars.forEach(liarName => { db.ref(`rooms/${currentRoom}/points/${liarName}`).transaction(cp => (cp || 0) + puntosAGanar); });
+                db.ref(`rooms/${currentRoom}`).update({ status: "impostor_win_direct", liarsList: liars.join(" & ") });
             });
         }
       }
@@ -273,9 +217,7 @@
         if (!n) return alert("Escribe un nombre...");
         const c = Math.random().toString(36).substring(2, 6).toUpperCase();
         myName = n; currentRoom = c;
-        db.ref("rooms/" + c).set({ host: n, status: "waiting", mode: m, players: { [n]: avatarSeed }, points: { [n]: 0 } }).then(() => {
-          localStorage.setItem("mentiroso_room", c); localStorage.setItem("mentiroso_name", n); listenToRoom(c);
-        });
+        db.ref("rooms/" + c).set({ host: n, status: "waiting", mode: m, players: { [n]: avatarSeed }, points: { [n]: 0 } }).then(() => { localStorage.setItem("mentiroso_room", c); localStorage.setItem("mentiroso_name", n); listenToRoom(c); });
       }
 
       function joinRoom() {
@@ -283,13 +225,11 @@
         const c = document.getElementById("roomInput").value.trim().toUpperCase();
         if (!c || !n) return alert("Faltan datos");
         db.ref("rooms/" + c).once("value", (s) => {
-          if (!s.exists()) return alert("No existe");
+          if (!s.exists()) return alert("La sala no existe");
           if (s.val().players && s.val().players[n]) n = n + "_" + Math.floor(Math.random()*99);
           myName = n; currentRoom = c;
           localStorage.setItem("mentiroso_room", c); localStorage.setItem("mentiroso_name", n);
-          db.ref(`rooms/${c}/players/${n}`).set(avatarSeed);
-          db.ref(`rooms/${c}/points/${n}`).transaction(p => p || 0);
-          listenToRoom(c);
+          db.ref(`rooms/${c}/players/${n}`).set(avatarSeed); db.ref(`rooms/${c}/points/${n}`).transaction(p => p || 0); listenToRoom(c);
         });
       }
 
@@ -307,6 +247,7 @@
           if (d.players && d.players[myName] === "KICKED") { alert("Has sido expulsado"); logout(); return; }
           const pKeys = d.players ? Object.keys(d.players).filter(k => d.players[k] !== "KICKED") : [];
           const isIHost = d.host === myName;
+          const amAlive = d.alivePlayers ? d.alivePlayers.includes(myName) : true;
 
           document.getElementById("room-code-display").innerText = code;
           document.getElementById("btn-logout").classList.remove("hidden");
@@ -316,7 +257,6 @@
 
           if (d.status === "waiting") {
             document.getElementById("vote-results").classList.add("hidden");
-            document.getElementById("btn-show-order").classList.add("hidden");
             document.getElementById("btn-final-reset").classList.add("hidden");
             document.getElementById("screen-room").classList.remove("hidden");
             document.getElementById("mode-tag").innerText = "MODO: " + d.mode.toUpperCase();
@@ -324,21 +264,16 @@
             else document.getElementById("ideas-input-box").classList.add("hidden");
             if (isIHost) document.getElementById("host-controls").classList.remove("hidden");
             document.getElementById("player-list").innerHTML = pKeys.map(u => 
-                `<div class="player-card">${isIHost && u !== myName ? `<div class="kick-badge" onclick="kickPlayer('${u}')" style="position:absolute;top:-5px;right:-5px;background:red;color:white;width:20px;height:20px;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:14px;cursor:pointer;">×</div>` : ""}
+                `<div class="player-card">${isIHost && u !== myName ? `<div class="kick-badge" onclick="kickPlayer('${u}')">×</div>` : ""}
                 <img src="${getAvatar(d.players[u])}" class="avatar"><div class="flex flex-col text-left leading-none">
                 <span class="font-black uppercase text-[11px]">${u}</span>
-                <span class="text-pink-500 font-bold text-[9px] mt-1">${d.points ? d.points[u] || 0 : 0} PTS</span></div></div>`
-            ).join("");
+                <span class="text-pink-500 font-bold text-[9px] mt-1">${d.points ? d.points[u] || 0 : 0} PTS</span></div></div>`).join("");
 
           } else if (d.status === "showing_order") {
             document.getElementById("screen-game-order").classList.remove("hidden");
             document.getElementById("btn-show-order").classList.remove("hidden");
             document.getElementById("turn-order-list").innerHTML = d.turnOrder.map((p, i) => 
-                `<div class="player-card text-white" style="background:rgba(255,255,255,0.05); padding:10px; border-radius:15px; display:flex; align-items:center; gap:10px;">
-                    <div style="background:#db2777; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900;">${i+1}</div>
-                    <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #db2777;"><img src="${getAvatar(d.players[p])}" style="width:100%; height:100%; object-fit:cover;"></div>
-                    <span class="font-bold uppercase text-sm">${p}</span>
-                </div>`).join("");
+                `<div class="player-card text-xs ${d.alivePlayers && !d.alivePlayers.includes(p) ? 'opacity-30 grayscale' : ''}"><div class="bg-pink-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-black">${i+1}</div><img src="${getAvatar(d.players[p])}" class="avatar"><span>${p}</span></div>`).join("");
             if (isIHost) document.getElementById("host-start-trigger").classList.remove("hidden");
 
           } else if (d.status === "started") {
@@ -349,6 +284,14 @@
                 setTimeout(() => el.classList.remove("active"), 3000);
                 if(isIHost) db.ref(`rooms/${currentRoom}/eventShowed`).set(true);
             }
+            if(!amAlive) {
+                document.getElementById("blur-wrapper").classList.add("dead");
+                document.getElementById("dead-msg").classList.remove("hidden");
+            } else {
+                document.getElementById("blur-wrapper").classList.remove("dead");
+                document.getElementById("dead-msg").classList.add("hidden");
+            }
+
             if (d.mode === "admin" && isIHost && !d.players[myName]) {
               document.getElementById("admin-view").classList.remove("hidden"); document.getElementById("player-view").classList.add("hidden");
               document.getElementById("admin-word-info").innerText = d.word;
@@ -360,76 +303,106 @@
 
           } else if (d.status === "voting") {
             document.getElementById("screen-voting").classList.remove("hidden");
-            const numLiars = Object.values(d.assignments).filter(r => r === "mentiroso").length;
             document.getElementById("btn-show-order").classList.add("hidden");
-            if (d.players[myName] && !(d.votes && d.votes[myName])) {
-                document.getElementById("vote-instruction").innerText = numLiars > 1 ? `Selecciona ${numLiars} mentirosos (${tmpV.length}/${numLiars})` : "Selecciona al mentiroso";
-                document.getElementById("vote-list").innerHTML = pKeys.map(u => `
-                    <button onclick="castVote('${u}')" class="player-card w-full uppercase font-black text-xs ${tmpV.includes(u) ? 'selected-vote' : ''}" style="margin-bottom:8px">
-                        <div style="width:35px; height:35px; border-radius:50%; overflow:hidden; border:2px solid #db2777;"><img src="${getAvatar(d.players[u])}" style="width:100%; height:100%; object-fit:cover;"></div>
-                        <span>${u}</span>${tmpV.includes(u) ? '<span class="ml-auto text-pink-500">✅</span>' : ''}</button>`).join("");
+            
+            if (amAlive && !(d.votes && d.votes[myName])) {
+                document.getElementById("vote-instruction").innerText = `Vota al mentiroso`;
+                document.getElementById("vote-list").innerHTML = d.alivePlayers.map(u => `
+                    <button onclick="castVote('${u}')" class="player-card w-full uppercase font-black text-xs ${tmpV.includes(u) ? 'selected-vote' : ''}">
+                        <img src="${getAvatar(d.players[u])}" class="avatar"><span>${u}</span>${tmpV.includes(u) ? '<span class="ml-auto text-pink-500">✅</span>' : ''}</button>`).join("");
             } else {
-                document.getElementById("vote-instruction").innerText = "Esperando al resto...";
-                document.getElementById("vote-list").innerHTML = pKeys.map(u => `<div class="player-card opacity-50 text-xs" style="margin-bottom:8px"><div style="width:35px; height:35px; border-radius:50%; overflow:hidden; border:2px solid #db2777;"><img src="${getAvatar(d.players[u])}" style="width:100%; height:100%; object-fit:cover;"></div><span>${u}</span>${d.votes && d.votes[u] ? '<span class="ml-auto text-green-500 font-bold">VOTÓ</span>' : ""}</div>`).join("");
+                document.getElementById("vote-instruction").innerText = amAlive ? "Esperando al resto..." : "ESTÁS ELIMINADO - ESPERANDO...";
+                document.getElementById("vote-list").innerHTML = d.alivePlayers.map(u => `<div class="player-card opacity-50 text-xs"><img src="${getAvatar(d.players[u])}" class="avatar"><span>${u}</span>${d.votes && d.votes[u] ? '<span class="ml-auto text-green-500 font-bold">VOTÓ</span>' : ""}</div>`).join("");
             }
 
-            if (d.votes && Object.keys(d.votes).length >= pKeys.length && !d.animShowed) {
-                const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
+            if (d.votes && Object.keys(d.votes).length >= d.alivePlayers.length && !d.animShowed) {
                 const counts = {}; Object.values(d.votes).forEach(vL => vL.forEach(v => counts[v] = (counts[v] || 0) + 1));
                 const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
                 const winners = sorted.filter(e => e[1] === sorted[0][1]);
+
                 if (isIHost) {
                     db.ref(`rooms/${currentRoom}/animShowed`).set(true);
-                    const mult = (d.event === "x2") ? 2 : 1;
                     if (winners.length === 1) {
                         const target = winners[0][0], targetIsLiar = d.assignments[target] === "mentiroso";
-                        Object.entries(d.assignments).forEach(([p, role]) => {
-                            if (role === "mentiroso" && target !== p) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + (3 * mult));
-                            if (role === "inocente" && targetIsLiar && d.votes[p]?.includes(target)) db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + (1 * mult));
-                        });
-                    }
-                }
-                if (winners.length > 1) {
-                    const scr = document.getElementById("tie-screen");
-                    document.querySelector("#tie-screen .hero-title").innerText = "EMPATE"; document.querySelector("#tie-screen .hero-title").style.color = "#fff";
-                    document.getElementById("tie-msg").innerText = "Empate de votos: nadie es expulsado"; document.getElementById("tie-icon").innerText = "⚖️";
-                    scr.classList.add("active"); setTimeout(() => { scr.classList.remove("active"); if(isIHost) db.ref(`rooms/${currentRoom}`).update({ status: "started", votes: null, animShowed: false }); }, 5000);
-                } else {
-                    const target = winners[0][0], targetIsLiar = d.assignments[target] === "mentiroso";
-                    if (targetIsLiar) {
-                        const scr = document.getElementById("ejection-screen");
-                        document.getElementById("ejection-avatars-flow").innerHTML = liars.map(l => `<div class="floating-avatar"><img src="${getAvatar(d.players[l])}" class="w-full h-full"></div>`).join("");
-                        document.getElementById("ejection-msg").innerHTML = `MENTIROSO PILLADO:<br><span class="text-pink-500">${target}</span>`;
-                        scr.classList.add("active"); setTimeout(() => { scr.classList.remove("active"); showFinalResults(d, pKeys, counts); }, 5000);
+                        if(targetIsLiar) {
+                            db.ref(`rooms/${currentRoom}`).update({ status: "victory_reveal", winnerRole: "inocente", target: target });
+                        } else {
+                            const newAlive = d.alivePlayers.filter(p => p !== target);
+                            if(newAlive.length <= 2) {
+                                db.ref(`rooms/${currentRoom}`).update({ status: "victory_reveal", winnerRole: "mentiroso" });
+                            } else {
+                                db.ref(`rooms/${currentRoom}`).update({ status: "liar_not_found", target: target, alivePlayers: newAlive });
+                            }
+                        }
                     } else {
-                        const scr = document.getElementById("tie-screen"); 
-                        document.getElementById("tie-msg").innerText = "¡LOS MENTIROSOS HAN GANADO!"; document.querySelector("#tie-screen .hero-title").innerText = "DERROTA";
-                        document.getElementById("tie-icon").innerText = "💀"; document.querySelector("#tie-screen .hero-title").style.color = "var(--gold)";
-                        scr.classList.add("active"); setTimeout(() => { scr.classList.remove("active"); showFinalResults(d, pKeys, counts); }, 5000);
+                        db.ref(`rooms/${currentRoom}`).update({ status: "tie_reveal" });
                     }
                 }
             }
-          } else if (d.status === "impostor_win_direct") {
-            ["screen-game", "screen-voting", "screen-game-order"].forEach(id => document.getElementById(id).classList.add("hidden"));
-            const victoryScr = document.getElementById("victory-screen");
+          } 
+          
+          else if (d.status === "liar_not_found") {
+             const scr = document.getElementById("tie-screen");
+             document.querySelector("#tie-screen .hero-title").innerText = "FALLO";
+             document.getElementById("tie-msg").innerText = `Expulsasteis a ${d.target}, pero era INOCENTE.`;
+             scr.classList.add("active");
+             setTimeout(() => { 
+                 scr.classList.remove("active");
+                 if(isIHost) db.ref(`rooms/${currentRoom}`).update({ status: "started", votes: null, animShowed: false });
+             }, 4000);
+          }
+          
+          else if (d.status === "tie_reveal") {
+             const scr = document.getElementById("tie-screen");
+             document.querySelector("#tie-screen .hero-title").innerText = "EMPATE";
+             document.getElementById("tie-msg").innerText = "Nadie se pone de acuerdo. Seguimos.";
+             scr.classList.add("active");
+             setTimeout(() => { 
+                 scr.classList.remove("active");
+                 if(isIHost) db.ref(`rooms/${currentRoom}`).update({ status: "started", votes: null, animShowed: false });
+             }, 4000);
+          }
+
+          else if (d.status === "victory_reveal") {
+              ["screen-game", "screen-voting", "screen-game-order"].forEach(id => document.getElementById(id).classList.add("hidden"));
+              const scr = d.winnerRole === "inocente" ? document.getElementById("ejection-screen") : document.getElementById("victory-screen");
+              
+              if(d.winnerRole === "inocente") {
+                  const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
+                  document.getElementById("ejection-avatars-flow").innerHTML = liars.map(l => `<div class="floating-avatar"><img src="${getAvatar(d.players[l])}" class="w-full h-full"></div>`).join("");
+                  document.getElementById("ejection-msg").innerHTML = `MENTIROSO PILLADO:<br><span class="text-pink-500">${d.target}</span>`;
+                  if(isIHost && !d.pointsGiven) {
+                      const mult = d.event === "x2" ? 2 : 1;
+                      pKeys.forEach(p => { if(d.assignments[p] === "inocente") db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v||0) + 1*mult); });
+                      db.ref(`rooms/${currentRoom}/pointsGiven`).set(true);
+                  }
+              } else {
+                  document.getElementById("victory-msg").innerText = "VICTORIA DEL MENTIROSO (1vs1)";
+                  if(isIHost && !d.pointsGiven) {
+                      const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
+                      const mult = d.event === "x2" ? 2 : 1;
+                      liars.forEach(l => db.ref(`rooms/${currentRoom}/points/${l}`).transaction(v => (v||0) + 3*mult));
+                      db.ref(`rooms/${currentRoom}/pointsGiven`).set(true);
+                  }
+              }
+              scr.classList.add("active");
+              setTimeout(() => { 
+                  scr.classList.remove("active"); 
+                  showFinalResults(d, pKeys, {}); 
+                  if (isIHost) document.getElementById("btn-final-reset").classList.remove("hidden");
+              }, 5000);
+          }
+
+          else if (d.status === "impostor_win_direct") {
+            ["screen-game", "screen-voting"].forEach(id => document.getElementById(id).classList.add("hidden"));
+            const scr = document.getElementById("victory-screen");
             document.getElementById("victory-msg").innerText = "EL MENTIROSO ADIVINÓ LA PALABRA: " + (d.liarsList || "");
-            victoryScr.classList.add("active");
-            
-            // LÓGICA CORREGIDA PARA QUE EL ADMIN NO SE QUEDE PILLADO
+            scr.classList.add("active");
             setTimeout(() => {
-                victoryScr.classList.remove("active");
-                // Forzamos mostrar resultados aunque no haya votos
-                document.getElementById("screen-voting").classList.remove("hidden"); 
-                document.getElementById("vote-results").classList.remove("hidden");
+                scr.classList.remove("active");
+                document.getElementById("screen-voting").classList.remove("hidden"); document.getElementById("vote-results").classList.remove("hidden");
                 document.getElementById("results-display").innerHTML = `<div class="text-center p-4 bg-amber-500/20 rounded-xl border border-amber-500 text-amber-500 font-bold uppercase text-xs">Victoria directa por adivinanza</div>`;
-                
-                // Mostrar botón de reinicio al Host
-                if (isIHost) {
-                    const btnReset = document.getElementById("btn-final-reset");
-                    btnReset.classList.remove("hidden");
-                    // Aseguramos que sea visible y clickeable
-                    btnReset.style.display = "block";
-                }
+                if (isIHost) document.getElementById("btn-final-reset").classList.remove("hidden");
             }, 5000);
           }
         });
@@ -439,15 +412,10 @@
         document.getElementById("vote-results").classList.remove("hidden");
         document.getElementById("results-display").innerHTML = pKeys.map(p => {
             const isLi = d.assignments[p] === "mentiroso";
-            const numVotos = counts[p] || 0;
-            let badge = isLi && numVotos === 0 ? "🏆 MAESTRO DEL ENGAÑO" : !isLi && numVotos >= pKeys.length / 2 ? "🦐 GAMBA CONFUNDIDA" : isLi && numVotos === pKeys.length ? "💀 PILLADO TOTAL" : "";
             return `<div class="flex flex-col bg-white/5 p-3 rounded-lg text-white mb-2 ${isLi ? "border-l-4 border-pink-600" : ""}">
                 <div class="flex justify-between items-center w-full">
                     <div class="flex flex-col"><span class="text-[10px] font-black uppercase">${p}</span><span class="${isLi ? "text-pink-500" : "text-zinc-500"} text-[8px] font-bold uppercase">${isLi ? "Mentiroso" : "Inocente"}</span></div>
-                    <span class="font-black text-xs">${numVotos} VOTOS</span>
-                </div>
-                ${badge ? `<div class="text-[7px] mt-1 font-black text-yellow-400 tracking-tighter">${badge}</div>` : ""}
-            </div>`;
+                </div></div>`;
         }).join("");
         if (d.host === myName) document.getElementById("btn-final-reset").classList.remove("hidden");
       }
@@ -455,18 +423,14 @@
       function startGame() {
         db.ref("rooms/" + currentRoom).once("value", (s) => {
           const d = s.val(), pKeys = Object.keys(d.players).filter(k => d.players[k] !== "KICKED");
-          db.ref("rooms/" + currentRoom).update({ status: "showing_order", turnOrder: shuffleArray([...pKeys]), animShowed: false });
+          db.ref("rooms/" + currentRoom).update({ status: "showing_order", turnOrder: shuffleArray([...pKeys]), animShowed: false, alivePlayers: pKeys, pointsGiven: false });
         });
       }
 
       function confirmStartGame() {
         db.ref("rooms/" + currentRoom).once("value", (s) => {
           const d = s.val(), num = parseInt(document.getElementById("liar-range").value);
-          const dictionary = [ 
-            { w: "LEÓN", c: "ANIMALES" }, { w: "PIZZA", c: "COMIDA" }, { w: "FÚTBOL", c: "DEPORTES" }, { w: "MESA", c: "HOGAR" }, { w: "CINE", c: "OCIO" }, { w: "MÉDICO", c: "PROFESIONES" },
-            { w: "MONTAÑA", c: "LUGARES" }, { w: "GUITARRA", c: "INSTRUMENTOS" }, { w: "OTOÑO", c: "ESTACIONES" }, { w: "SATURNO", c: "PLANETAS" },
-            { w: "AZUL", c: "COLORES" }, { w: "MANZANA", c: "FRUTAS" }, { w: "GATO", c: "ANIMALES" }, { w: "BICICLETA", c: "VEHÍCULOS" }, { w: "LIBRO", c: "OBJETOS" }
-          ];
+          const dictionary = [ { w: "LEÓN", c: "ANIMALES" }, { w: "PIZZA", c: "COMIDA" }, { w: "FÚTBOL", c: "DEPORTES" }, { w: "MESA", c: "HOGAR" }, { w: "CINE", c: "OCIO" }, { w: "MÉDICO", c: "PROFESIONES" }, { w: "MONTAÑA", c: "LUGARES" }, { w: "GUITARRA", c: "INSTRUMENTOS" }, { w: "OTOÑO", c: "ESTACIONES" }, { w: "SATURNO", c: "PLANETAS" }, { w: "AZUL", c: "COLORES" }, { w: "MANZANA", c: "FRUTAS" }, { w: "GATO", c: "ANIMALES" }, { w: "BICICLETA", c: "VEHÍCULOS" }, { w: "LIBRO", c: "OBJETOS" } ];
           let item, autorDeLaIdea = null;
           if (d.mode === "ideas" && d.ideas) {
             const autores = Object.keys(d.ideas);
@@ -483,17 +447,14 @@
             else assigns[p] = candidatosAImpostor.indexOf(p) < num ? "mentiroso" : "inocente";
           });
           const event = (Math.random() < 0.3) ? "x2" : "none";
-          db.ref("rooms/" + currentRoom).update({ status: "started", word: item.w, category: item.c, assignments: assigns, votes: null, animShowed: false, event: event, eventShowed: false });
+          db.ref("rooms/" + currentRoom).update({ status: "started", word: item.w, category: item.c, assignments: assigns, votes: null, animShowed: false, event: event, eventShowed: false, alivePlayers: pKeys, pointsGiven: false });
         });
       }
 
-      function openVoting() { db.ref(`rooms/${currentRoom}`).update({ status: "voting", votes: null }); }
-      
+      function openVoting() { db.ref(`rooms/${currentRoom}`).update({ status: "voting", votes: null, animShowed: false }); }
       function castVote(t) {
         db.ref(`rooms/${currentRoom}`).once("value", (s) => {
-          const d = s.val(), max = Object.values(d.assignments).filter(r => r === "mentiroso").length;
-          if (tmpV.includes(t)) { tmpV = tmpV.filter(v => v !== t); } else if (tmpV.length < max) { tmpV.push(t); }
-          if (tmpV.length === max) { db.ref(`rooms/${currentRoom}/votes/${myName}`).set(tmpV); tmpV = []; } else { listenToRoom(currentRoom); }
+          db.ref(`rooms/${currentRoom}/votes/${myName}`).set([t]);
         });
       }
 
@@ -504,13 +465,8 @@
         document.getElementById("hint-text").innerText = (r === "mentiroso" ? "Pista: " +  c : "");
       }
 
-      function resetGame() { db.ref("rooms/" + currentRoom).update({ status: "waiting", assignments: null, turnOrder: null, votes: null, animShowed: false, ideas: null, event: "none" }); }
-      
-      function sendIdea() {
-        const w = document.getElementById("idea-word").value.trim().toUpperCase();
-        const c = document.getElementById("idea-cat").value.trim().toUpperCase();
-        if (w && c) db.ref(`rooms/${currentRoom}/ideas/${myName}`).set({ w, c });
-      }
+      function resetGame() { db.ref("rooms/" + currentRoom).update({ status: "waiting", assignments: null, turnOrder: null, votes: null, animShowed: false, ideas: null, event: "none", alivePlayers: null }); }
+      function sendIdea() { const w = document.getElementById("idea-word").value.trim().toUpperCase(), c = document.getElementById("idea-cat").value.trim().toUpperCase(); if (w && c) db.ref(`rooms/${currentRoom}/ideas/${myName}`).set({ w, c }); }
     </script>
   </body>
 </html>
