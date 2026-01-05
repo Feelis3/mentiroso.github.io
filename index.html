@@ -307,7 +307,6 @@
       }
 
       function listenToRoom(code) {
-        db.ref(`rooms/${code}/players/${myName}`).onDisconnect().remove();
         db.ref(`rooms/${code}/lastReaction`).on("value", (s) => {
           const val = s.val(); if (!val || Date.now() - val.time > 2000) return;
           const pop = document.createElement("div"); pop.className = "reaction-pop";
@@ -554,3 +553,4 @@
     </script>
   </body>
 </html>
+
