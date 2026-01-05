@@ -462,25 +462,41 @@
               }, 4000);
           }
           else if (d.status === "victory_reveal") {
+              // Limpieza de pantallas previas para el Admin
+              ["screen-game", "screen-voting", "screen-game-order"].forEach(id => document.getElementById(id).classList.add("hidden"));
+              
               const scr = d.winnerRole === "inocente" ? document.getElementById("ejection-screen") : document.getElementById("victory-screen");
+              
               if(d.winnerRole === "inocente") {
                   const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
                   document.getElementById("ejection-avatars-flow").innerHTML = liars.map(l => `<div class="floating-avatar"><img src="${getAvatar(d.players[l])}" class="w-full h-full"></div>`).join("");
                   document.getElementById("ejection-msg").innerHTML = `MENTIROSO PILLADO:<br><span class="text-pink-500">${d.target}</span>`;
-                  if(isIHost) {
+                  
+                  if(isIHost && !d.pointsAdded) { // Usamos un flag para no sumar puntos infinitamente
                       const mult = d.event === "x2" ? 2 : 1;
-                      pKeys.forEach(p => { if(d.assignments[p] === "inocente") db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v||0) + 1*mult); });
+                      pKeys.forEach(p => { 
+                          if(d.assignments[p] === "inocente") db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v||0) + 1*mult); 
+                      });
+                      db.ref(`rooms/${currentRoom}/pointsAdded`).set(true);
                   }
               } else {
                   document.getElementById("victory-msg").innerText = "EL MENTIROSO ENGAÑÓ A TODOS";
-                  if(isIHost) {
+                  if(isIHost && !d.pointsAdded) {
                       const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
                       const mult = d.event === "x2" ? 2 : 1;
                       liars.forEach(l => db.ref(`rooms/${currentRoom}/points/${l}`).transaction(v => (v||0) + 3*mult));
+                      db.ref(`rooms/${currentRoom}/pointsAdded`).set(true);
                   }
               }
+
               scr.classList.add("active");
-              setTimeout(() => { scr.classList.remove("active"); showFinalResults(d, pKeys, {}); }, 5000);
+              
+              setTimeout(() => { 
+                  scr.classList.remove("active"); 
+                  showFinalResults(d, pKeys, {}); 
+                  // Forzamos que aparezca el botón de nueva ronda para el Host
+                  if (isIHost) document.getElementById("btn-final-reset").classList.remove("hidden");
+              }, 5000);
           }
           else if (d.status === "impostor_win_direct") {
             // Ocultamos todas las pantallas de juego
@@ -579,5 +595,6 @@
     </script>
   </body>
 </html>
+
 
 
