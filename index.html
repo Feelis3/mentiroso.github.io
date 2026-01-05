@@ -41,10 +41,8 @@
       .btn-back { position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
       .selected-vote { background: rgba(219, 39, 119, 0.2) !important; border-color: var(--pink) !important; transform: scale(1.02); }
       
-      /* Estilos para jugadores eliminados */
       .player-dead { opacity: 0.5; filter: grayscale(1); pointer-events: none; border-color: #333 !important; }
-      .dead-badge { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 20px; }
-
+      
       #trigger-reaction { position: fixed; bottom: 85px; right: 20px; width: 55px; height: 55px; background: var(--pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 201; box-shadow: 0 0 20px rgba(219,39,119,0.4); }
       #btn-random-avatar { position: fixed; bottom: 20px; right: 22.5px; width: 50px; height: 50px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; z-index: 201; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
       #reaction-menu { position: fixed; bottom: 150px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 200; transition: 0.3s; transform: scale(0); opacity: 0; transform-origin: bottom right; }
@@ -56,7 +54,7 @@
       #ejection-screen, #tie-screen, #event-screen, #victory-screen, #continue-screen { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.5s opacity; }
       #ejection-screen.active, #tie-screen.active, #event-screen.active, #victory-screen.active, #continue-screen.active { opacity: 1; pointer-events: auto; }
       #victory-screen { background: radial-gradient(circle, #451a03 0%, #000 100%); }
-      #continue-screen { background: radial-gradient(circle, #1e3a8a 0%, #000 100%); } /* Azulado para Inocente eliminado */
+      #continue-screen { background: radial-gradient(circle, #1e3a8a 0%, #000 100%); }
 
       .floating-avatar { width: 100px; height: 100px; animation: floatX 4.5s infinite linear; position: absolute; left: -150px; }
       @keyframes floatX { 0% { transform: translateX(-150vw) rotate(0deg); } 100% { transform: translateX(250vw) rotate(1000deg); } }
@@ -401,7 +399,7 @@
             document.getElementById("turn-order-list").innerHTML = d.turnOrder.map((p, i) => 
                 `<div class="player-card text-xs text-white" style="background:rgba(255,255,255,0.05); padding:10px; border-radius:15px; display:flex; align-items:center; gap:10px;">
                     <div style="background:#db2777; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900;">${i+1}</div>
-                    <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #db2777;"><img src="${getAvatar(d.players[p])}" style="width:100%; height:100%; object-fit:cover;"></div>
+                    <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #db2777;"><img src="${getAvatar(d.players[u=p])}" style="width:100%; height:100%; object-fit:cover;"></div>
                     <span class="font-bold uppercase text-sm">${p}</span>
                 </div>`).join("");
             if (isIHost) document.getElementById("host-start-trigger").classList.remove("hidden");
@@ -466,12 +464,11 @@
                 }).join("");
             }
 
-            // Lógica de cálculo (HOST): Solo calcula, no muestra animación directamente.
             if (isIHost) {
                 const aliveCount = Object.values(d.alive).filter(v => v === true).length;
                 const votesCount = d.votes ? Object.keys(d.votes).length : 0;
 
-                if (votesCount >= aliveCount) {
+                if (votesCount >= aliveCount && aliveCount > 0) {
                      const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
                      const counts = {}; Object.values(d.votes).forEach(vL => vL.forEach(v => counts[v] = (counts[v] || 0) + 1));
                      const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
@@ -483,35 +480,23 @@
                          if (winners.length === 1) {
                              const target = winners[0][0];
                              const targetIsLiar = d.assignments[target] === "mentiroso";
-                             
-                             if (targetIsLiar) {
-                                resultData = { type: 'impostor', target: target };
-                             } else {
-                                resultData = { type: 'innocent', target: target };
-                             }
+                             if (targetIsLiar) resultData = { type: 'impostor', target: target };
+                             else resultData = { type: 'innocent', target: target };
                          }
                      }
-
-                     // ACTUALIZAMOS ESTADO EN DB para que TODOS los clientes reaccionen
-                     db.ref(`rooms/${currentRoom}`).update({ 
-                         status: "showing_result", 
-                         lastResult: resultData
-                     });
+                     // Pasamos a pantalla de resultados (sincronizada)
+                     db.ref(`rooms/${currentRoom}`).update({ status: "showing_result", lastResult: resultData });
                 }
             }
 
           } else if (d.status === "showing_result") {
-            // TODOS los clientes ven esto al mismo tiempo
-            document.getElementById("screen-voting").classList.remove("hidden"); // Mantener fondo
-            
+            document.getElementById("screen-voting").classList.remove("hidden");
             const res = d.lastResult;
+            if(!res) return; // Esperar datos
+
             const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
-            const counts = {}; 
-            if(d.votes) Object.values(d.votes).forEach(vL => vL.forEach(v => counts[v] = (counts[v] || 0) + 1));
-
-            // Solo ejecutar animación si no se ha ejecutado ya en esta "instancia" visual
-            // (La protección d.status previene bucles, pero usamos CSS classes 'active' para transiciones)
-
+            
+            // Animaciones (Cliente)
             if (res.type === 'tie') {
                 const scr = document.getElementById("tie-screen");
                 document.querySelector("#tie-screen .hero-title").innerText = "EMPATE"; 
@@ -528,56 +513,63 @@
                 scr.classList.add("active");
             }
 
-            // El HOST gestiona la lógica de puntos y cambio de fase tras el delay
+            // Lógica de juego tras animación (HOST)
             if (isIHost && !d.processedResult) {
-                // Marcar como procesado para que el host no sume puntos 20 veces durante los 5 segs
                 db.ref(`rooms/${currentRoom}/processedResult`).set(true); 
 
-                const mult = (d.event === "x2") ? 2 : 1;
-                
                 setTimeout(() => {
-                    // Limpiar pantallas
-                    db.ref(`rooms/${currentRoom}`).update({ processedResult: null, lastResult: null });
+                    let updates = {};
+                    const mult = (d.event === "x2") ? 2 : 1;
+                    updates['processedResult'] = null;
+                    updates['lastResult'] = null;
 
                     if (res.type === 'tie') {
-                        db.ref(`rooms/${currentRoom}`).update({ status: "started", votes: null });
+                        updates['status'] = "started";
+                        updates['votes'] = null;
                     } else if (res.type === 'impostor') {
-                        // PUNTOS INOCENTES
+                        // Puntos para inocentes que acertaron
                         Object.entries(d.assignments).forEach(([p, role]) => {
                             if (role === "inocente" && d.votes[p]?.includes(res.target)) {
-                                db.ref(`rooms/${currentRoom}/points/${p}`).transaction(v => (v || 0) + (1 * mult));
+                                const currentP = d.points ? (d.points[p] || 0) : 0;
+                                updates[`points/${p}`] = currentP + (1 * mult);
                             }
                         });
-                        // Pasar a pantalla final
-                        showFinalResults(d, pKeys, counts); // Esto es local, pero cambiamos estado para todos
-                        db.ref(`rooms/${currentRoom}`).update({ status: "game_over" }); // Nuevo estado para fin
+                        updates['status'] = "game_over";
                     } else if (res.type === 'innocent') {
-                         // MATAR JUGADOR
-                        db.ref(`rooms/${currentRoom}/alive/${res.target}`).set(false);
+                        // Matar jugador
+                        updates[`alive/${res.target}`] = false;
                         
-                        // PUNTOS MENTIROSOS (Sobrevivir)
+                        // Puntos para mentirosos por sobrevivir
                         liars.forEach(l => {
-                            db.ref(`rooms/${currentRoom}/points/${l}`).transaction(v => (v || 0) + (1 * mult));
+                            const currentP = d.points ? (d.points[l] || 0) : 0;
+                            updates[`points/${l}`] = currentP + (1 * mult);
                         });
 
-                        // CHECK 1vs1
-                        const aliveCount = Object.values(d.alive).filter(v => v === true).length;
-                        if (aliveCount - 1 <= 2) { // -1 porque la DB tarda milisegundos y usamos el valor local d.alive anterior
-                             // VICTORIA IMPOSTOR
-                             liars.forEach(l => {
-                                db.ref(`rooms/${currentRoom}/points/${l}`).transaction(v => (v || 0) + (3 * mult));
+                        // Calcular si quedan suficientes vivos
+                        // Ojo: Usamos d.alive que todavía tiene al muerto como true, así que restamos 1
+                        const currentAliveCount = Object.values(d.alive).filter(v => v === true).length;
+                        const newAliveCount = currentAliveCount - 1;
+
+                        if (newAliveCount <= 2) {
+                            // VICTORIA IMPOSTOR
+                            liars.forEach(l => {
+                                // Puntos extra acumulativos (se suman a los de sobrevivir que ya calculamos arriba? mejor recalcular)
+                                const baseP = (d.points ? (d.points[l] || 0) : 0) + (1 * mult);
+                                updates[`points/${l}`] = baseP + (3 * mult);
                             });
-                             db.ref(`rooms/${currentRoom}`).update({ status: "game_over_liar_win" });
+                            updates['status'] = "game_over_liar_win";
                         } else {
-                            // CONTINUAR
-                            db.ref(`rooms/${currentRoom}`).update({ status: "started", votes: null });
+                            // SEGUIR JUGANDO
+                            updates['status'] = "started";
+                            updates['votes'] = null;
                         }
                     }
+                    // Actualización ATÓMICA para evitar bloqueos
+                    db.ref(`rooms/${currentRoom}`).update(updates);
                 }, 5000);
             }
 
           } else if (d.status === "game_over" || d.status === "game_over_liar_win") {
-             // Limpiar modales activos
              document.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
              document.getElementById("screen-game").classList.add("hidden");
              
@@ -591,7 +583,6 @@
                  setTimeout(() => vicScr.classList.remove("active"), 4000);
              }
 
-             // Mostrar resultados finales
              const counts = {}; 
              if(d.votes) Object.values(d.votes).forEach(vL => vL.forEach(v => counts[v] = (counts[v] || 0) + 1));
              showFinalResults(d, pKeys, counts);
@@ -614,7 +605,7 @@
 
       function showFinalResults(d, pKeys, counts) {
         document.getElementById("screen-voting").classList.remove("hidden");
-        document.getElementById("vote-list").innerHTML = ""; // Limpiar lista de votacion
+        document.getElementById("vote-list").innerHTML = "";
         document.getElementById("vote-instruction").innerText = "RESULTADOS DE LA RONDA";
         document.getElementById("vote-results").classList.remove("hidden");
         document.getElementById("results-display").innerHTML = pKeys.map(p => {
