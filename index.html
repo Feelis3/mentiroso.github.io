@@ -244,15 +244,14 @@
 
       // --- FUNCIONES DE UTILIDAD ---
       function hideOverlays() {
-          // Esta función fuerza el cierre de todas las pantallas de aviso
           document.querySelectorAll('#ejection-screen, #tie-screen, #victory-screen, #continue-screen').forEach(el => {
               el.classList.remove('active');
           });
       }
 
       function randomizeName() {
-        const adjs = ["LOCO", "FIERO", "LISTO", "RAPIDO", "SILENCIOSO", "ASTUTO", "BRAVO", "ZEN"];
-        const nouns = ["GAMBA", "TIGRE", "LEON", "PULPO", "ZORRO", "LOBO", "HALCON", "MONO"];
+        const adjs = ["LOCO", "FIERO", "LISTO", "RAPIDO", "SILENCIOSO", "ASTUTO", "BRAVO", "ZEN", "TOXICO", "CANSADO"];
+        const nouns = ["GAMBA", "TIGRE", "LEON", "PULPO", "ZORRO", "LOBO", "HALCON", "MONO", "CUÑADO", "JEFE"];
         document.getElementById('username').value = adjs[Math.floor(Math.random()*adjs.length)] + "_" + nouns[Math.floor(Math.random()*nouns.length)];
       }
 
@@ -386,7 +385,7 @@
           // --- ESTADOS ---
 
           if (d.status === "waiting") {
-            hideOverlays(); // Asegurar limpieza
+            hideOverlays(); 
             document.getElementById("btn-show-order").classList.add("hidden");
             document.getElementById("btn-random-avatar").classList.remove("hidden");
             document.getElementById("vote-results").classList.add("hidden");
@@ -417,7 +416,7 @@
             if (isIHost) document.getElementById("host-start-trigger").classList.remove("hidden");
 
           } else if (d.status === "started") {
-            hideOverlays(); // IMPORTANTÍSIMO: Aquí limpiamos la pantalla azul si se quedó pegada
+            hideOverlays();
             
             document.getElementById("btn-random-avatar").classList.add("hidden");
             document.getElementById("screen-game").classList.remove("hidden");
@@ -434,16 +433,23 @@
               document.getElementById("admin-view").classList.add("hidden"); document.getElementById("player-view").classList.remove("hidden");
               if (d.assignments && d.assignments[myName]) showRole(d.assignments[myName], d.word, d.category);
             }
-            if (isIHost) document.getElementById("host-game-controls").classList.remove("hidden");
             
-             if (!amIAlive) {
+            // --- CORRECCIÓN ADMIN MUERTO ---
+            // Si soy Host, SIEMPRE veo los controles, aunque esté muerto.
+            if (isIHost) {
+                document.getElementById("host-game-controls").classList.remove("hidden");
+            } else {
+                document.getElementById("host-game-controls").classList.add("hidden");
+            }
+
+            if (!amIAlive) {
                 document.getElementById("role-title").innerText = "ELIMINADO";
                 document.getElementById("role-title").style.color = "red";
-                document.getElementById("host-game-controls").classList.add("hidden");
+                // Ya no ocultamos controles aquí si es Host, se gestiona arriba
              }
 
           } else if (d.status === "voting") {
-            hideOverlays(); // Asegurar que no hay popups viejos
+            hideOverlays(); 
             document.getElementById("btn-random-avatar").classList.add("hidden");
             document.getElementById("screen-voting").classList.remove("hidden");
             const numLiars = Object.values(d.assignments).filter(r => r === "mentiroso").length;
@@ -479,12 +485,10 @@
                 }).join("");
             }
 
-            // CALCULO DE VOTOS (SOLO HOST)
             if (isIHost) {
                 const aliveCount = Object.values(d.alive).filter(v => v === true).length;
                 const votesCount = d.votes ? Object.keys(d.votes).length : 0;
 
-                // Solo procedemos si TODOS los vivos han votado y hay al menos 1 vivo
                 if (votesCount >= aliveCount && aliveCount > 0) {
                      const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
                      const counts = {}; Object.values(d.votes).forEach(vL => vL.forEach(v => counts[v] = (counts[v] || 0) + 1));
@@ -501,21 +505,17 @@
                              else resultData = { type: 'innocent', target: target };
                          }
                      }
-                     // Pasamos a pantalla de resultados
                      db.ref(`rooms/${currentRoom}`).update({ status: "showing_result", lastResult: resultData });
                 }
             }
 
           } else if (d.status === "showing_result") {
-            // MANTENEMOS la vista de votación de fondo
             document.getElementById("screen-voting").classList.remove("hidden");
             const res = d.lastResult;
             if(!res) return;
 
             const liars = Object.entries(d.assignments).filter(([p, r]) => r === "mentiroso").map(e => e[0]);
             
-            // --- ANIMACIONES (CLIENTE) ---
-            // Solo activamos si aún no tenemos 'active' para evitar re-triggers visuales feos
             const tieScreen = document.getElementById("tie-screen");
             const ejecScreen = document.getElementById("ejection-screen");
             const contScreen = document.getElementById("continue-screen");
@@ -533,25 +533,20 @@
                 contScreen.classList.add("active");
             }
 
-            // --- LÓGICA DE TRANSICIÓN (SOLO HOST) ---
             if (isIHost && !d.processedResult) {
-                // Bloqueo para que solo entre una vez
                 db.ref(`rooms/${currentRoom}/processedResult`).set(true); 
 
                 setTimeout(() => {
                     let updates = {};
                     const mult = (d.event === "x2") ? 2 : 1;
                     
-                    // Limpieza de flags temporales
                     updates['processedResult'] = null;
                     updates['lastResult'] = null;
 
                     if (res.type === 'tie') {
-                        // Empate: Volvemos al juego (sin matar a nadie)
                         updates['status'] = "started";
                         updates['votes'] = null;
                     } else if (res.type === 'impostor') {
-                        // Impostor pillado: Fin de juego (Ganan Inocentes)
                         Object.entries(d.assignments).forEach(([p, role]) => {
                             if (role === "inocente" && d.votes[p]?.includes(res.target)) {
                                 const currentP = d.points ? (d.points[p] || 0) : 0;
@@ -560,43 +555,33 @@
                         });
                         updates['status'] = "game_over";
                     } else if (res.type === 'innocent') {
-                        // Inocente eliminado: El juego sigue (o gana impostor si queda 1v1)
                         updates[`alive/${res.target}`] = false;
                         
-                        // Puntos para mentirosos por sobrevivir
                         liars.forEach(l => {
                             const currentP = d.points ? (d.points[l] || 0) : 0;
                             updates[`points/${l}`] = currentP + (1 * mult);
                         });
 
-                        // Calculamos cuántos vivos quedarán DESPUÉS de esta muerte
                         const currentAliveCount = Object.values(d.alive).filter(v => v === true).length;
                         const newAliveCount = currentAliveCount - 1; 
 
                         if (newAliveCount <= 2) {
-                            // VICTORIA IMPOSTOR (1 vs 1)
                             liars.forEach(l => {
-                                // Sumar los puntos de victoria a lo que ya tenían
-                                // OJO: updates['points/l'] ya tiene el +1 de arriba. 
-                                // Para simplificar, leemos el valor base 'd.points' y sumamos todo junto
                                 const baseP = d.points ? (d.points[l] || 0) : 0;
                                 updates[`points/${l}`] = baseP + (1 * mult) + (3 * mult);
                             });
                             updates['status'] = "game_over_liar_win";
                         } else {
-                            // LA PARTIDA CONTINÚA
                             updates['status'] = "started";
                             updates['votes'] = null;
                         }
                     }
-                    
-                    // ¡ACTUALIZACIÓN ATÓMICA! Esto cambia el estado y triggers listenToRoom("started")
                     db.ref(`rooms/${currentRoom}`).update(updates);
-                }, 5000); // 5 segundos para ver la animación
+                }, 5000); 
             }
 
           } else if (d.status === "game_over" || d.status === "game_over_liar_win") {
-             hideOverlays(); // Limpiar pantallas de "continue"
+             hideOverlays();
              document.getElementById("screen-game").classList.add("hidden");
              
              if (d.status === "game_over_liar_win") {
@@ -672,15 +657,75 @@
       function confirmStartGame() {
         db.ref("rooms/" + currentRoom).once("value", (s) => {
           const d = s.val(), num = parseInt(document.getElementById("liar-range").value);
+          // --- DICCIONARIO NUEVO Y DIVERTIDO ---
           const dictionary = [
-            { w: "LEÓN", c: "ANIMALES" }, { w: "TIGRE", c: "ANIMALES" }, { w: "ELEFANTE", c: "ANIMALES" }, { w: "CEBRA", c: "ANIMALES" }, { w: "GIRAFA", c: "ANIMALES" }, { w: "DELFÍN", c: "ANIMALES" }, { w: "TIBURÓN", c: "ANIMALES" }, { w: "ÁGUILA", c: "ANIMALES" }, { w: "PINGÜINO", c: "ANIMALES" }, { w: "CANGURO", c: "ANIMALES" }, { w: "PANDA", c: "ANIMALES" }, { w: "LOBO", c: "ANIMALES" }, { w: "ZORRO", c: "ANIMALES" }, { w: "MONO", c: "ANIMALES" }, { w: "CABALLO", c: "ANIMALES" }, { w: "VACA", c: "ANIMALES" }, { w: "CERDO", c: "ANIMALES" }, { w: "OVEJA", c: "ANIMALES" }, { w: "GALLINA", c: "ANIMALES" }, { w: "PATO", c: "ANIMALES" }, { w: "CISNE", c: "ANIMALES" }, { w: "LORO", c: "ANIMALES" }, { w: "BÚHO", c: "ANIMALES" }, { w: "MURCIÉLAGO", c: "ANIMALES" }, { w: "RANA", c: "ANIMALES" }, { w: "COCODRILO", c: "ANIMALES" }, { w: "TORTUGA", c: "ANIMALES" }, { w: "SERPIENTE", c: "ANIMALES" }, { w: "BALLENA", c: "ANIMALES" }, { w: "PULPO", c: "ANIMALES" }, { w: "MEDUSA", c: "ANIMALES" }, { w: "ESTRELLA DE MAR", c: "ANIMALES" }, { w: "HORMIGA", c: "ANIMALES" }, { w: "ABEJA", c: "ANIMALES" }, { w: "MARIPOSA", c: "ANIMALES" }, { w: "ARAÑA", c: "ANIMALES" }, { w: "ESCORPIÓN", c: "ANIMALES" }, { w: "CAMELLO", c: "ANIMALES" }, { w: "HIPOPÓTAMO", c: "ANIMALES" }, { w: "RINOCERONTE", c: "ANIMALES" }, { w: "PIZZA", c: "COMIDA" }, { w: "HAMBURGUESA", c: "COMIDA" }, { w: "SUSHI", c: "COMIDA" }, { w: "PASTA", c: "COMIDA" }, { w: "ENSALADA", c: "COMIDA" }, { w: "PAELLA", c: "COMIDA" }, { w: "TACO", c: "COMIDA" }, { w: "BURRITO", c: "COMIDA" }, { w: "LASAÑA", c: "COMIDA" }, { w: "SOPA", c: "COMIDA" }, { w: "FILETE", c: "COMIDA" }, { w: "POLLO ASADO", c: "COMIDA" }, { w: "PESCADO", c: "COMIDA" }, { w: "MARISCO", c: "COMIDA" }, { w: "TORTILLA", c: "COMIDA" }, { w: "CROQUETAS", c: "COMIDA" }, { w: "JAMÓN", c: "COMIDA" }, { w: "QUESO", c: "COMIDA" }, { w: "PAN", c: "COMIDA" }, { w: "ARROZ", c: "COMIDA" }, { w: "MANZANA", c: "COMIDA" }, { w: "PLÁTANO", c: "COMIDA" }, { w: "FRESA", c: "COMIDA" }, { w: "NARANJA", c: "COMIDA" }, { w: "UVA", c: "COMIDA" }, { w: "SANDÍA", c: "COMIDA" }, { w: "PIÑA", c: "COMIDA" }, { w: "KIWI", c: "COMIDA" }, { w: "TOMATE", c: "COMIDA" }, { w: "LECHUGA", c: "COMIDA" }, { w: "ZANAHORIA", c: "COMIDA" }, { w: "PATATA", c: "COMIDA" }, { w: "CEBOLLA", c: "COMIDA" }, { w: "AJO", c: "COMIDA" }, { w: "CHOCOLATE", c: "COMIDA" }, { w: "HELADO", c: "COMIDA" }, { w: "TARTA", c: "COMIDA" }, { w: "GALLETA", c: "COMIDA" }, { w: "DONUT", c: "COMIDA" }, { w: "CAFÉ", c: "COMIDA" }, { w: "TÉ", c: "COMIDA" }, { w: "CERVEZA", c: "COMIDA" }, { w: "VINO", c: "COMIDA" }, { w: "REFRESCO", c: "COMIDA" }, { w: "ZUMO", c: "COMIDA" }, { w: "AGUA", c: "COMIDA" }, { w: "MESA", c: "HOGAR" }, { w: "SILLA", c: "HOGAR" }, { w: "SOFÁ", c: "HOGAR" }, { w: "CAMA", c: "HOGAR" }, { w: "ARMARIO", c: "HOGAR" }, { w: "ESTANTERÍA", c: "HOGAR" }, { w: "LÁMPARA", c: "HOGAR" }, { w: "ESPEJO", c: "HOGAR" }, { w: "CUADRO", c: "HOGAR" }, { w: "RELOJ", c: "HOGAR" }, { w: "TELEVISOR", c: "HOGAR" }, { w: "ORDENADOR", c: "HOGAR" }, { w: "TELÉFONO", c: "HOGAR" }, { w: "NEVERA", c: "HOGAR" }, { w: "LAVADORA", c: "HOGAR" }, { w: "MICROONDAS", c: "HOGAR" }, { w: "HORNO", c: "HOGAR" }, { w: "BATIDORA", c: "HOGAR" }, { w: "CAFETERA", c: "HOGAR" }, { w: "PLATO", c: "HOGAR" }, { w: "VASO", c: "HOGAR" }, { w: "TAZA", c: "HOGAR" }, { w: "TENEDOR", c: "HOGAR" }, { w: "CUCHILLO", c: "HOGAR" }, { w: "CUCHARA", c: "HOGAR" }, { w: "SARTÉN", c: "HOGAR" }, { w: "OLLA", c: "HOGAR" }, { w: "TOALLA", c: "HOGAR" }, { w: "SÁBANA", c: "HOGAR" }, { w: "ALMOHADA", c: "HOGAR" }, { w: "CORTINA", c: "HOGAR" }, { w: "ALFOMBRA", c: "HOGAR" }, { w: "PUERTA", c: "HOGAR" }, { w: "VENTANA", c: "HOGAR" }, { w: "LLAVE", c: "HOGAR" }, { w: "MARTILLO", c: "HOGAR" }, { w: "DESTORNILLADOR", c: "HOGAR" }, { w: "ESCOBA", c: "HOGAR" }, { w: "CUBO", c: "HOGAR" }, { w: "PLANCHA", c: "HOGAR" }, { w: "FÚTBOL", c: "DEPORTES" }, { w: "BALONCESTO", c: "DEPORTES" }, { w: "TENIS", c: "DEPORTES" }, { w: "NATACIÓN", c: "DEPORTES" }, { w: "CICLISMO", c: "DEPORTES" }, { w: "ATLETISMO", c: "DEPORTES" }, { w: "BOXEO", c: "DEPORTES" }, { w: "GOLF", c: "DEPORTES" }, { w: "VOLEIBOL", c: "DEPORTES" }, { w: "RUGBY", c: "DEPORTES" }, { w: "BÉISBOL", c: "DEPORTES" }, { w: "ESQUÍ", c: "DEPORTES" }, { w: "SURF", c: "DEPORTES" }, { w: "SKATE", c: "DEPORTES" }, { w: "KARATE", c: "DEPORTES" }, { w: "YOGA", c: "DEPORTES" }, { w: "AJEDREZ", c: "DEPORTES" }, { w: "BILLAR", c: "DEPORTES" }, { w: "DARDOS", c: "DEPORTES" }, { w: "VIDEOJUEGOS", c: "OCIO" }, { w: "CINE", c: "OCIO" }, { w: "TEATRO", c: "OCIO" }, { w: "MÚSICA", c: "OCIO" }, { w: "LECTURA", c: "OCIO" }, { w: "PINTURA", c: "OCIO" }, { w: "BAILE", c: "OCIO" }, { w: "FOTOGRAFÍA", c: "OCIO" }, { w: "VIAJAR", c: "OCIO" }, { w: "CAMPING", c: "OCIO" }, { w: "SENDERISMO", c: "OCIO" }, { w: "PESCA", c: "OCIO" }, { w: "NAVEGACIÓN", c: "OCIO" }, { w: "MÉDICO", c: "PROFESIONES" }, { w: "ENFERMERO", c: "PROFESIONES" }, { w: "DENTISTA", c: "PROFESIONES" }, { w: "PROFESOR", c: "PROFESIONES" }, { w: "CIENTÍFICO", c: "PROFESIONES" }, { w: "INGENIERO", c: "PROFESIONES" }, { w: "ARQUITECTO", c: "PROFESIONES" }, { w: "ABOGADO", c: "PROFESIONES" }, { w: "POLICÍA", c: "PROFESIONES" }, { w: "BOMBERO", c: "PROFESIONES" }, { w: "PILOTO", c: "PROFESIONES" }, { w: "ASTRONAUTA", c: "PROFESIONES" }, { w: "COCINERO", c: "PROFESIONES" }, { w: "CAMARERO", c: "PROFESIONES" }, { w: "ARTISTA", c: "PROFESIONES" }, { w: "MÚSICO", c: "PROFESIONES" }, { w: "ACTOR", c: "PROFESIONES" }, { w: "ESCRITOR", c: "PROFESIONES" }, { w: "PERIODISTA", c: "PROFESIONES" }, { w: "FOTÓGRAFO", c: "PROFESIONES" }, { w: "DISEÑADOR", c: "PROFESIONES" }, { w: "PROGRAMADOR", c: "PROFESIONES" }, { w: "MECÁNICO", c: "PROFESIONES" }, { w: "ELECTRICISTA", c: "PROFESIONES" }, { w: "FONTANERO", c: "PROFESIONES" }, { w: "CARPINTERO", c: "PROFESIONES" }, { w: "ALBAÑIL", c: "PROFESIONES" }, { w: "GRANJERO", c: "PROFESIONES" }, { w: "VETERINARIO", c: "PROFESIONES" }, { w: "PELUQUERO", c: "PROFESIONES" }, { w: "PLAYA", c: "LUGARES" }, { w: "MONTAÑA", c: "LUGARES" }, { w: "BOSQUE", c: "LUGARES" }, { w: "DESIERTO", c: "LUGARES" }, { w: "SELVA", c: "LUGARES" }, { w: "RÍO", c: "LUGARES" }, { w: "LAGO", c: "LUGARES" }, { w: "OCÉANO", c: "LUGARES" }, { w: "ISLA", c: "LUGARES" }, { w: "VOLCÁN", c: "LUGARES" }, { w: "CIUDAD", c: "LUGARES" }, { w: "PUEBLO", c: "LUGARES" }, { w: "PARQUE", c: "LUGARES" }, { w: "ZOO", c: "LUGARES" }, { w: "MUSEO", c: "LUGARES" }, { w: "BIBLIOTECA", c: "LUGARES" }, { w: "ESCUELA", c: "LUGARES" }, { w: "UNIVERSIDAD", c: "LUGARES" }, { w: "HOSPITAL", c: "LUGARES" }, { w: "FARMACIA", c: "LUGARES" }, { w: "SUPERMERCADO", c: "LUGARES" }, { w: "RESTAURANTE", c: "LUGARES" }, { w: "HOTEL", c: "LUGARES" }, { w: "AEROPUERTO", c: "LUGARES" }, { w: "ESTACIÓN", c: "LUGARES" }, { w: "CASTILLO", c: "LUGARES" }, { w: "IGLESIA", c: "LUGARES" }, { w: "PUENTE", c: "LUGARES" }, { w: "RASCACIELOS", c: "LUGARES" }, { w: "CUEVA", c: "LUGARES" }, { w: "COCHE", c: "TRANSPORTE" }, { w: "AUTOBÚS", c: "TRANSPORTE" }, { w: "TREN", c: "TRANSPORTE" }, { w: "METRO", c: "TRANSPORTE" }, { w: "TAXI", c: "TRANSPORTE" }, { w: "MOTO", c: "TRANSPORTE" }, { w: "BICICLETA", c: "TRANSPORTE" }, { w: "PATINETE", c: "TRANSPORTE" }, { w: "CAMIÓN", c: "TRANSPORTE" }, { w: "FURGONETA", c: "TRANSPORTE" }, { w: "BARCO", c: "TRANSPORTE" }, { w: "SUBMARINO", c: "TRANSPORTE" }, { w: "HELICÓPTERO", c: "TRANSPORTE" }, { w: "COHETE", c: "TRANSPORTE" }, { w: "GLOBO", c: "TRANSPORTE" }, { w: "CAMISETA", c: "ROPA" }, { w: "PANTALÓN", c: "ROPA" }, { w: "VESTIDO", c: "ROPA" }, { w: "FALDA", c: "ROPA" }, { w: "CHAQUETA", c: "ROPA" }, { w: "ABRIGO", c: "ROPA" }, { w: "JERSEY", c: "ROPA" }, { w: "ZAPATOS", c: "ROPA" }, { w: "ZAPATILLAS", c: "ROPA" }, { w: "BOTAS", c: "ROPA" }, { w: "SOMBRERO", c: "ROPA" }, { w: "GORRA", c: "ROPA" }, { w: "GUANTES", c: "ROPA" }, { w: "BUFANDA", c: "ROPA" }, { w: "CINTURÓN", c: "ROPA" }, { w: "GAFAS", c: "ACCESORIOS" }, { w: "RELOJ DE PULSERA", c: "ACCESORIOS" }, { w: "ANILLO", c: "ACCESORIOS" }, { w: "COLLAR", c: "ACCESORIOS" }, { w: "PENDIENTES", c: "ACCESORIOS" }, { w: "BOLSO", c: "ACCESORIOS" }, { w: "MOCHILA", c: "ACCESORIOS" }, { w: "PARAGUAS", c: "ACCESORIOS" }, { w: "ÁATOMO", c: "CIENCIA" }, { w: "CÉLULA", c: "CIENCIA" }, { w: "PLANETA", c: "CIENCIA" }, { w: "ESTRELLA", c: "CIENCIA" }, { w: "GALAXIA", c: "CIENCIA" }, { w: "GRAVEDAD", c: "CIENCIA" }, { w: "ENERGÍA", c: "CIENCIA" }, { w: "ROBOT", c: "TECNOLOGÍA" }, { w: "INTERNET", c: "TECNOLOGÍA" }, { w: "SOFTWARE", c: "TECNOLOGÍA" }, { w: "BATERÍA", c: "TECNOLOGÍA" }, { w: "CÁMARA", c: "TECNOLOGÍA" }, { w: "ALTAVOZ", c: "TECNOLOGÍA" }, { w: "PANTALLA", c: "TECNOLOGÍA" }, { w: "TECLADO", c: "TECNOLOGÍA" }, { w: "RATÓN", c: "TECNOLOGÍA" }, { w: "SATÉLITE", c: "TECNOLOGÍA" }, { w: "DRON", c: "TECNOLOGÍA" }, { w: "GUITARRA", c: "MÚSICA" }, { w: "PIANO", c: "MÚSICA" }, { w: "VIOLÍN", c: "MÚSICA" }, { w: "BATERÍA MÚSICAL", c: "MÚSICA" }, { w: "FLAUTA", c: "MÚSICA" }, { w: "TROMPETA", c: "MÚSICA" }, { w: "ACORDEÓN", c: "MÚSICA" }, { w: "HARPA", c: "MÚSICA" }, { w: "PIRÁMIDE", c: "HISTORIA" }, { w: "MOMIA", c: "HISTORIA" }, { w: "CABALLERO", c: "HISTORIA" }, { w: "VIKINGO", c: "HISTORIA" }, { w: "PIRATA", c: "HISTORIA" }, { w: "DINOSAURIO", c: "HISTORIA" }, { w: "FÓSIL", c: "HISTORIA" }, { w: "BRÚJULA", c: "HISTORIA" }, { w: "MAPA", c: "HISTORIA" }, { w: "ESTATUA", c: "ARTE" }, { w: "PINCEL", c: "ARTE" }, { w: "LIENZO", c: "ARTE" }, { w: "ESCULTURA", c: "ARTE" }, { w: "POESÍA", c: "ARTE" }, { w: "CÓMIC", c: "ARTE" }, { w: "MANGA", c: "ARTE" }, { w: "DIBUJO ANIMADO", c: "ARTE" }, { w: "FUEGO", c: "ELEMENTOS" }, { w: "HIELO", c: "ELEMENTOS" }, { w: "RAYO", c: "ELEMENTOS" }, { w: "VIENTO", c: "ELEMENTOS" }, { w: "TERREMOTO", c: "ELEMENTOS" }, { w: "LLUVIA", c: "ELEMENTOS" }, { w: "NIEVE", c: "ELEMENTOS" }, { w: "NIEBLA", c: "ELEMENTOS" }, { w: "ARCOIRIS", c: "ELEMENTOS" }, { w: "ECLIPSE", c: "ELEMENTOS" }
+            // INTERNET Y MODERNIDAD
+            { w: "WIFI", c: "CONEXIÓN" }, { w: "SELFIE", c: "FOTO" }, { w: "STALKER", c: "REDES" },
+            { w: "SPOILER", c: "ARRUINAR" }, { w: "MEME", c: "HUMOR" }, { w: "BLOCK", c: "REDES" },
+            { w: "INFLUENCER", c: "TRABAJO" }, { w: "TIKTOK", c: "APP" }, { w: "TINDER", c: "CITAS" },
+            { w: "ADMIN", c: "PODER" }, { w: "HATER", c: "ENEMIGO" }, { w: "LIKE", c: "INTERACCIÓN" },
+            { w: "VISTO", c: "IGNORAR" }, { w: "STICKER", c: "WHATSAPP" }, { w: "FILTER", c: "INSTAGRAM" },
+            { w: "LAG", c: "LENTITUD" }, { w: "NOOB", c: "PRINCIPIANTE" }, { w: "BAN", c: "CASTIGO" },
+            { w: "CRINGE", c: "VERGÜENZA" }, { w: "CRUSH", c: "AMOR" }, { w: "GHOSTING", c: "DESAPARECER" },
+
+            // VIDA COTIDIANA Y DRAMAS
+            { w: "RESACA", c: "DOLOR" }, { w: "LUNES", c: "TRAGEDIA" }, { w: "SIESTA", c: "SAGRADO" },
+            { w: "DIETA", c: "MENTIRA" }, { w: "ALARMA", c: "RUIDO" }, { w: "ATASCO", c: "COCHES" },
+            { w: "COLA", c: "ESPERA" }, { w: "NOMINA", c: "DINERO" }, { w: "ALQUILER", c: "GASTO" },
+            { w: "ITV", c: "COCHE" }, { w: "MULTA", c: "POLICÍA" }, { w: "PARO", c: "ESTADO" },
+            { w: "GIMNASIO", c: "ENERO" }, { w: "TUPPER", c: "COMIDA" }, { w: "MUDANZA", c: "CAJAS" },
+            { w: "EXAMEN", c: "ESTUDIO" }, { w: "OPERADORA", c: "LLAMADA" }, { w: "SPAM", c: "CORREO" },
+
+            // OBJETOS Y COSAS RANDOM
+            { w: "CHANCLA", c: "ARMA" }, { w: "CARGADOR", c: "VIDA" }, { w: "MANDO", c: "TELE" },
+            { w: "LEGO", c: "DOLOR PIE" }, { w: "SATISFYER", c: "JUGUETE" }, { w: "CROCS", c: "CALZADO" },
+            { w: "PIJAMA", c: "ROPA" }, { w: "TANGAS", c: "ROPA" }, { w: "CALCETÍN", c: "SIEMPRE PAR" },
+            { w: "PAPEL", c: "BAÑO" }, { w: "ESPEJO", c: "REFLEJO" }, { w: "LLAVES", c: "BOLSILLO" },
+            { w: "MONEDA", c: "SUERTE" }, { w: "TARJETA", c: "PLÁSTICO" }, { w: "MASCARILLA", c: "PANDEMIA" },
+
+            // PERSONAJES Y ROLES
+            { w: "SUEGRA", c: "FAMILIA" }, { w: "CUÑADO", c: "OPINÓLOGO" }, { w: "JEFE", c: "MANDÓN" },
+            { w: "EX", c: "PASADO" }, { w: "VECINO", c: "MOLESTIA" }, { w: "BEBÉ", c: "LLANTO" },
+            { w: "POLICÍA", c: "AUTORIDAD" }, { w: "CAMARERO", c: "BAR" }, { w: "YOUTUBER", c: "CÁMARA" },
+            { w: "DJ", c: "MÚSICA" }, { w: "PORTERO", c: "DISCOTECA" }, { w: "ABUELA", c: "COMIDA" },
+            { w: "TAXISTA", c: "CHARLA" }, { w: "POLÍTICO", c: "DISCURSO" }, { w: "TURISTA", c: "CÁMARA" },
+
+            // LUGARES
+            { w: "IKEA", c: "LABERINTO" }, { w: "MERCADONA", c: "SUPER" }, { w: "PRIMARK", c: "ROPA" },
+            { w: "DISCOTECA", c: "NOCHE" }, { w: "ASCENSOR", c: "SILENCIO" }, { w: "METRO", c: "SUBSUELO" },
+            { w: "PLAYA", c: "ARENA" }, { w: "CINE", c: "OSCURIDAD" }, { w: "BAÑO", c: "PRIVACIDAD" },
+            { w: "SOFÁ", c: "RELAX" }, { w: "CAMA", c: "DORMIR" }, { w: "BALCÓN", c: "COTILLEO" },
+
+            // COMIDA (DIVERTIDA)
+            { w: "KEBAB", c: "NOCHE" }, { w: "PIZZA", c: "ITALIA" }, { w: "SUSHI", c: "JAPÓN" },
+            { w: "TACO", c: "MÉXICO" }, { w: "BRAVAS", c: "TAPAS" }, { w: "PAELLA", c: "DOMINGO" },
+            { w: "CROQUETA", c: "DIOS" }, { w: "CERVEZA", c: "BAR" }, { w: "JÄGER", c: "PELIGRO" },
+            { w: "TEQUILA", c: "CHUPITO" }, { w: "CAFÉ", c: "DESPERTAR" }, { w: "CHOCOLATE", c: "PLACER" },
+            { w: "BRÓCOLI", c: "VERDE" }, { w: "CILANTRO", c: "JABÓN" }, { w: "PIÑA", c: "POLÉMICA" },
+
+            // ANIMALES Y CRIATURAS
+            { w: "CUCARACHA", c: "ASCO" }, { w: "RATA", c: "ALCANTARILLA" }, { w: "PALOMA", c: "CIUDAD" },
+            { w: "GATO", c: "INTERNET" }, { w: "PERRO", c: "AMIGO" }, { w: "UNICORNIO", c: "FANTASÍA" },
+            { w: "DINOSAURIO", c: "EXTINTO" }, { w: "ALIEN", c: "ESPACIO" }, { w: "ZOMBIE", c: "CEREBROS" },
+            { w: "VAMPIRO", c: "SANGRE" }, { w: "FANTASMA", c: "SÁBANA" }, { w: "MOSQUITO", c: "VERANO" },
+
+            // ABSTRACTO Y ACCIONES
+            { w: "COTILLEO", c: "INFORMACIÓN" }, { w: "MENTIRA", c: "ENGAÑO" }, { w: "SECRETO", c: "SILENCIO" },
+            { w: "DRAMA", c: "TEATRO" }, { w: "KARMA", c: "DESTINO" }, { w: "SUERTE", c: "AZAR" },
+            { w: "BAILE", c: "MOVIMIENTO" }, { w: "BESO", c: "LABIOS" }, { w: "GRITO", c: "VOZ" },
+            { w: "PEDO", c: "GAS" }, { w: "ERUCTO", c: "SONIDO" }, { w: "RISA", c: "ALEGRÍA" },
+            { w: "LLANTO", c: "TRISTEZA" }, { w: "MIEDO", c: "TERROR" }, { w: "AMOR", c: "CORAZÓN" }
           ];
+
           let item, autorDeLaIdea = null;
           if (d.mode === "ideas" && d.ideas) {
             const autores = Object.keys(d.ideas);
             autorDeLaIdea = autores[Math.floor(Math.random() * autores.length)];
             item = d.ideas[autorDeLaIdea];
-          } else { item = dictionary[Math.floor(Math.random() * dictionary.length)]; }
+          } else { 
+            // MEJOR ALEATORIEDAD
+            item = dictionary[Math.floor(Math.random() * dictionary.length)]; 
+          }
           
           let assigns = {};
           const pKeys = d.turnOrder; 
@@ -724,4 +769,5 @@
     </script>
   </body>
 </html>
+
 
